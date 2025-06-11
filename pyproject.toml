@@ -15,7 +15,8 @@ dependencies = [
     "tqdm",
     "geopy",
     "pydeck",
-    "streamlit"
+    "streamlit",
+    "plotly",
 ]
 
 [tool.setuptools.packages.find]
