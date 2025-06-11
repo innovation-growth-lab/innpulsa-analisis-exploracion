@@ -1,0 +1,9 @@
+.envrc
+
+jairo/
+.vscode/
+.cursor/
+*__pycache__/
+*.egg-info/
+requirements.txt
+data/
