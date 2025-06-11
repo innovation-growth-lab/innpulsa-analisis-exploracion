@@ -7,3 +7,5 @@ jairo/
 *.egg-info/
 requirements.txt
 data/
+*.lock
+*.log
