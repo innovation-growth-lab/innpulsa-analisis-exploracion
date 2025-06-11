@@ -1,16 +1,24 @@
 #!/usr/bin/env python3
-"""geocode processed ZASCA addresses using Google's Geocoding API."""
+"""geocode processed ZASCA addresses using Google's Geocoding API.
+
+python scripts/geolocation/zasca/geocode_addresses.py --service nominatim
+
+or
+
+python scripts/geolocation/zasca/geocode_addresses.py --service google
+"""
 
 import asyncio
 import os
 import sys
+import argparse
 from pathlib import Path
 import pandas as pd
-import argparse
 
 from innpulsa.settings import DATA_DIR
 from innpulsa.geolocation.geocoding import GoogleGeocoder
 from innpulsa.logging import configure_logger
+from innpulsa.loaders import load_csv
 
 
 async def google_geocode() -> int:
@@ -27,7 +35,7 @@ async def google_geocode() -> int:
     try:
         input_path = Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv"
         logger.info("reading addresses from %s", input_path)
-        df = pd.read_csv(input_path, encoding="latin1")
+        df = load_csv(input_path, encoding="latin1")
     except Exception as e:  # pylint: disable=W0718
         logger.error("failed to read input file: %s", str(e))
         return 1
@@ -83,7 +91,7 @@ def nominatim_geocode() -> int:
     # load processed addresses (no need for API key)
     input_path = Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv"
     logger.info("reading addresses from %s", input_path)
-    df = pd.read_csv(input_path, encoding="latin1")
+    df = load_csv(input_path, encoding="latin1")
 
     addresses = {
         row["id"]: {

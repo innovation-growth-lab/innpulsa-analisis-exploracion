@@ -11,8 +11,6 @@ import pandas as pd
 from google import genai
 
 from innpulsa.logging import configure_logger
-from ._prompts import SYSTEM_PROMPT
-
 
 logger = configure_logger("innpulsa.geolocation.llm")
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -142,11 +140,12 @@ def clean_json_response(response_text: str) -> str:
 
 
 @with_exponential_backoff(max_retries=5, initial_delay=1.0)
-async def make_llm_request(formatted_addresses: str) -> str:
+async def make_llm_request(formatted_addresses: str, prompt: str) -> str:
     """Make a request to the LLM with retry logic.
 
     Args:
         formatted_addresses: JSON string of addresses to process
+        prompt: The prompt to use for the LLM request
 
     Returns:
         Response text from LLM
@@ -154,7 +153,7 @@ async def make_llm_request(formatted_addresses: str) -> str:
     response = await asyncio.to_thread(
         client.models.generate_content,
         model="gemini-2.0-flash",
-        contents=SYSTEM_PROMPT.format(batch_addresses=formatted_addresses),
+        contents=prompt.format(batch_addresses=formatted_addresses),
     )
     return response.text
 
@@ -163,6 +162,7 @@ async def process_address_batch(
     addresses: Dict[str, str],
     rate_limiter: RateLimiter,
     batch_id: int,
+    prompt: str,
 ) -> Dict[str, Any]:
     """process a batch of addresses using the LLM with rate limiting.
 
@@ -170,6 +170,7 @@ async def process_address_batch(
         addresses: dictionary mapping address IDs to address strings
         rate_limiter: rate limiter instance
         batch_id: unique identifier for this batch
+        prompt: The prompt to use for the LLM request
 
     Returns:
         dictionary containing batch results
@@ -181,7 +182,7 @@ async def process_address_batch(
         formatted_addresses = format_addresses_for_prompt(addresses)
 
         # Use the retrying request function
-        response_text = await make_llm_request(formatted_addresses)
+        response_text = await make_llm_request(formatted_addresses, prompt)
 
         # Clean and validate the response
         cleaned_response = clean_json_response(response_text)
@@ -267,9 +268,10 @@ def save_batch_result(result: Dict[str, Any], output_dir: Path) -> None:
     logger.debug("saved batch %d result to %s", batch_id, output_path)
 
 
-async def process_zasca_addresses(
+async def normalise_addresses_using_llm(
     df: pd.DataFrame,
     output_dir: Path,
+    prompt: str,
     batch_size: int = 10,
     calls_per_second: float = 0.25,  # 15 requests per minute
 ) -> Dict[str, int]:
@@ -281,6 +283,7 @@ async def process_zasca_addresses(
         batch_size: size of each batch
         calls_per_second: number of API calls allowed per second (default: 0.25,
             which is 15 requests/minute)
+        prompt: The prompt to use for the LLM request
 
     Returns:
         summary statistics
@@ -303,7 +306,8 @@ async def process_zasca_addresses(
 
     # process all batches concurrently
     tasks = [
-        process_address_batch(batch, rate_limiter, i) for i, batch in enumerate(batches)
+        process_address_batch(batch, rate_limiter, i, prompt)
+        for i, batch in enumerate(batches)
     ]
 
     logger.info("processing %d batches...", len(tasks))
@@ -336,11 +340,13 @@ async def process_zasca_addresses(
 
 
 # legacy function for backwards compatibility
-async def process_addresses(addresses: dict[str, str]) -> dict[str, dict[str, str]]:
+async def process_addresses(
+    addresses: dict[str, str], prompt: str
+) -> dict[str, dict[str, str]]:
     """process a batch of addresses using the LLM."""
     formatted_addresses = format_addresses_for_prompt(addresses)
     response = await client.models.generate_content(
         model="gemini-2.0-flash",
-        contents=SYSTEM_PROMPT.format(addresses=formatted_addresses),
+        contents=prompt.format(addresses=formatted_addresses),
     )
     return response.text

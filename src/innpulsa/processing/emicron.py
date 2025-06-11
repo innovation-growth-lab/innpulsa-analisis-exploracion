@@ -9,6 +9,7 @@ import logging
 from pathlib import Path
 import pandas as pd
 from ..settings import RAW_DATA_DIR
+from ..loaders import load_stata
 
 
 logger = logging.getLogger("innpulsa.processing.emicron")
@@ -34,14 +35,14 @@ def read_emicron() -> pd.DataFrame:
 
     # read base file
     logger.debug("reading base characteristics file")
-    df = pd.read_stata(files["characteristics"])
+    df = load_stata(files["characteristics"])
 
     # merge with other files
     for name, file_path in files.items():
         if name == "characteristics":
             continue
         logger.debug("merging with %s data", name)
-        temp_df = pd.read_stata(file_path)
+        temp_df = load_stata(file_path)
         df = df.merge(
             temp_df,
             on=["DIRECTORIO", "SECUENCIA_P", "SECUENCIA_ENCUESTA"],

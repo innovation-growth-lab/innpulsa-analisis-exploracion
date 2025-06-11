@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import pandas as pd
-from innpulsa.geolocation.llm import process_zasca_addresses
+from innpulsa.geolocation.llm import normalise_addresses_using_llm
 from innpulsa.settings import DATA_DIR
 from innpulsa.logging import configure_logger
 
@@ -33,7 +33,7 @@ class GeolocationProcessor:
 
         # process addresses
         logger.info("starting address processing")
-        await process_zasca_addresses(df, self.output_dir)
+        await normalise_addresses_using_llm(df, self.output_dir)
 
         # compile results
         logger.info("compiling results")

@@ -8,9 +8,9 @@ including reading, cleaning, and combining data.
 import os
 import logging
 from pathlib import Path
-import pyreadstat
 import pandas as pd
 from ..settings import RAW_DATA_DIR, DATA_DIR
+from ..loaders import load_stata, load_csv
 
 
 logger = logging.getLogger("innpulsa.processing.zasca")
@@ -138,7 +138,7 @@ def read_and_process_zasca(save_processed: bool = True) -> pd.DataFrame:
     for cohort_name, file_path in cohort_files.items():
         try:
             logger.debug("reading cohort file: %s", file_path)
-            df, _ = pyreadstat.read_dta(file_path, encoding="utf-8")
+            df = load_stata(file_path, encoding="utf-8")
 
             # select only relevant columns before processing
             df = select_relevant_columns(df, df.columns.tolist())
@@ -182,7 +182,7 @@ def read_processed_zasca() -> pd.DataFrame:
     logger.info("reading processed ZASCA data from %s", zasca_path)
 
     try:
-        df = pd.read_csv(zasca_path, encoding="latin1")
+        df = load_csv(zasca_path, encoding="latin1")
 
         logger.debug("successfully read %d ZASCA records", len(df))
         return df

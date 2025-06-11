@@ -8,7 +8,8 @@ based on business identifiers.
 import logging
 from pathlib import Path
 import pandas as pd
-from innpulsa.processing import read_rues, read_processed_zasca
+from innpulsa.processing.rues import read_processed_rues
+from innpulsa.processing.zasca import read_processed_zasca
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -19,22 +20,19 @@ logger = logging.getLogger()
 def main():
     """Main function to merge RUES and ZASCA data."""
     # read data from both sources
-    logger.info("reading RUES data")
-    rues_df = read_rues()
+    logger.info("reading processed RUES data")
+    rues_df = read_processed_rues()
 
     logger.info("reading processed ZASCA data")
     zasca_df = read_processed_zasca()
 
-    # prepare data for merge
-    logger.info("preparing data for merge")
-    rues_df["nit"] = rues_df["numero_de_identificacion"].astype(str)
+    # ensure nit columns are clean
+    logger.info("ensuring NIT columns are clean")
+
+    if zasca_df["nit"].dtype != "object":
+        zasca_df["nit"] = zasca_df["nit"].astype(str)
     zasca_df["nit"] = (
-        zasca_df["nit"]
-        .replace("nan", -1)
-        .astype(float)
-        .astype(int)
-        .astype(str)
-        .replace("-1", "")
+        zasca_df["nit"].replace("nan", "").str.replace(r"\.0$", "", regex=True)
     )
 
     # perform inner merge

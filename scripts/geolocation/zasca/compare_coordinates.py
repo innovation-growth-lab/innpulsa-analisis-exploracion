@@ -13,6 +13,7 @@ True when both latitude and longitude differ by less than a small tolerance.
 from pathlib import Path
 import sys
 import pandas as pd
+from innpulsa.loaders import load_csv
 
 from innpulsa.settings import DATA_DIR
 from innpulsa.logging import configure_logger
@@ -28,9 +29,9 @@ def main() -> int:
 
     base_dir = Path(DATA_DIR) / "processed/geolocation"
     try:
-        addr_df = pd.read_csv(base_dir / "zasca_addresses.csv", encoding="latin1")
-        google_df = pd.read_csv(base_dir / "zasca_coordinates.csv")
-        nom_df = pd.read_csv(base_dir / "zasca_coordinates_nominatim.csv")
+        addr_df = load_csv(base_dir / "zasca_addresses.csv", encoding="latin1")
+        google_df = load_csv(base_dir / "zasca_coordinates.csv")
+        nom_df = load_csv(base_dir / "zasca_coordinates_nominatim.csv")
     except FileNotFoundError as err:
         logger.error("Required file not found: %s", err)
         return 1
