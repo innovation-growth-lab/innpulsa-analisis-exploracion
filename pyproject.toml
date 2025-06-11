@@ -10,7 +10,7 @@ requires-python = ">=3.10"
 dependencies = [
     "pandas",
     "pyreadstat",
-    "genai",
+    "google-genai",
     "aiohttp",
     "tqdm",
 ]
