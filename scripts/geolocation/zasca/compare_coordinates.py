@@ -29,7 +29,7 @@ def main() -> int:
 
     base_dir = Path(DATA_DIR) / "processed/geolocation"
     try:
-        addr_df = load_csv(base_dir / "zasca_addresses.csv", encoding="latin1")
+        addr_df = load_csv(base_dir / "zasca_addresses.csv", encoding="utf-8-sig")
         google_df = load_csv(base_dir / "zasca_coordinates.csv")
         nom_df = load_csv(base_dir / "zasca_coordinates_nominatim.csv")
     except FileNotFoundError as err:

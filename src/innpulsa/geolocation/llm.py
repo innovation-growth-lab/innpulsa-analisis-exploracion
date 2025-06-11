@@ -11,6 +11,7 @@ import pandas as pd
 from google import genai
 
 from innpulsa.logging import configure_logger
+from innpulsa.rate_limiter import RateLimiter  # shared implementation
 
 logger = configure_logger("innpulsa.geolocation.llm")
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
@@ -87,35 +88,6 @@ def format_addresses_for_prompt(addresses: Dict[str, str]) -> str:
     """
     # Convert Python dict to JSON string with proper formatting
     return json.dumps(addresses, indent=2, ensure_ascii=False)
-
-
-class RateLimiter:
-    """rate limiter that ensures minimum delay between operations."""
-
-    active_batches = 0  # Track concurrent batches
-
-    def __init__(self, calls_per_second: float = 1.0):
-        self.min_interval = 1.0 / calls_per_second
-        self.last_call_time = 0.0
-        self._lock = asyncio.Lock()
-
-    async def acquire(self):
-        """wait until we can make another call."""
-        async with self._lock:
-            RateLimiter.active_batches += 1
-            logger.info("active batches: %d", RateLimiter.active_batches)
-            now = asyncio.get_event_loop().time()
-            time_since_last_call = now - self.last_call_time
-            if time_since_last_call < self.min_interval:
-                wait_time = self.min_interval - time_since_last_call
-                await asyncio.sleep(wait_time)
-            self.last_call_time = asyncio.get_event_loop().time()
-
-    async def release(self):
-        """release the rate limiter."""
-        async with self._lock:
-            RateLimiter.active_batches -= 1
-            logger.info("active batches: %d", RateLimiter.active_batches)
 
 
 def clean_json_response(response_text: str) -> str:
@@ -273,7 +245,7 @@ async def normalise_addresses_using_llm(
     output_dir: Path,
     prompt: str,
     batch_size: int = 10,
-    calls_per_second: float = 0.25,  # 15 requests per minute
+    calls_per_second: float = 4,  # 15 requests per minute
 ) -> Dict[str, int]:
     """process all ZASCA addresses using LLM with rate limiting.
 

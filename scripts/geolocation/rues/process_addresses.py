@@ -137,7 +137,7 @@ async def run_pipeline(prompt: str) -> int:
     rues_df = read_processed_rues()
     zasca_geocoded = load_csv(
         Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv",
-        encoding="latin1",
+        encoding="utf-8-sig",
     )
 
     # select only rues_df observations in source_year 2023
@@ -155,10 +155,6 @@ async def run_pipeline(prompt: str) -> int:
 
     # Compile results
     compiled = compile_results()
-    if compiled is None:
-        logger.error("No results to compile")
-        return 1
-
     out_csv = Path(DATA_DIR) / "processed/geolocation/rues_addresses.csv"
     compiled.to_csv(out_csv, index=False, encoding="utf-8-sig")
     logger.info("Saved %d standardised addresses to %s", len(compiled), out_csv)

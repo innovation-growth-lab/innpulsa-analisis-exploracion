@@ -166,7 +166,7 @@ def read_and_process_zasca(save_processed: bool = True) -> pd.DataFrame:
         # save processed data
         output_path = output_dir / "zasca_total.csv"
         logger.info("saving processed ZASCA data to %s", output_path)
-        result.to_csv(output_path, index=False, encoding="latin1")
+        result.to_csv(output_path, index=False, encoding="utf-8-sig")
 
     logger.info("completed ZASCA data processing with %d records", len(result))
     return result
@@ -182,7 +182,7 @@ def read_processed_zasca() -> pd.DataFrame:
     logger.info("reading processed ZASCA data from %s", zasca_path)
 
     try:
-        df = load_csv(zasca_path, encoding="latin1")
+        df = load_csv(zasca_path, encoding="utf-8-sig")
 
         logger.debug("successfully read %d ZASCA records", len(df))
         return df

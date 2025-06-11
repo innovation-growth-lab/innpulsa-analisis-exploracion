@@ -45,7 +45,7 @@ class GeolocationProcessor:
         # save to CSV
         output_file = Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv"
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        results_df.to_csv(output_file, index=False, encoding="latin1")
+        results_df.to_csv(output_file, index=False, encoding="utf-8-sig")
         logger.info("saved %d records to %s", len(results_df), output_file)
         return output_file, len(results_df)
 
