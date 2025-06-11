@@ -13,7 +13,9 @@ dependencies = [
     "google-genai",
     "aiohttp",
     "tqdm",
-    "geopy"
+    "geopy",
+    "pydeck",
+    "streamlit"
 ]
 
 [tool.setuptools.packages.find]

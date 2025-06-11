@@ -5,6 +5,8 @@ import urllib.parse
 from typing import Dict, Optional, Tuple
 import aiohttp
 from tqdm.asyncio import tqdm
+from pathlib import Path
+import json
 
 from innpulsa.logging import configure_logger
 from innpulsa.rate_limiter import RateLimiter  # shared implementation
@@ -37,7 +39,7 @@ class GoogleGeocoder:
 
     async def geocode(
         self, address: str, country: str, area: str, city: str
-    ) -> Optional[Tuple[float, float]]:
+    ) -> Tuple[Optional[str], Optional[Tuple[float, float]]]:
         """geocode a single address with components.
 
         Args:
@@ -47,10 +49,10 @@ class GoogleGeocoder:
             city: city name
 
         Returns:
-            tuple of (latitude, longitude) or None if geocoding failed
+            tuple of (formatted_address, (latitude, longitude)) or None if geocoding failed
         """
         if not all([address, country, area, city]):
-            return None
+            return None, None
 
         # build components string (use | without encoding)
         components = [
@@ -77,7 +79,7 @@ class GoogleGeocoder:
 
                 if data["status"] != "OK":
                     logger.warning("geocoding failed: %s", data["status"])
-                    return None
+                    return None, None
 
                 gmaps_address = data["results"][0]["formatted_address"]
                 location = data["results"][0]["geometry"]["location"]
@@ -85,27 +87,36 @@ class GoogleGeocoder:
 
         except Exception as e:  # pylint: disable=W0718
             logger.error("geocoding request failed: %s", str(e))
-            return None
+            return None, None
         finally:
             # Release the rate limiter regardless of success/failure
             await self._rate_limiter.release()
 
     async def geocode_batch(
-        self, addresses: Dict[str, Dict[str, str]], max_retries: int = 3
+        self,
+        addresses: Dict[str, Dict[str, str]],
+        max_retries: int = 3,
+        *,
+        checkpoint_path: Optional[Path] = None,
+        save_every: int = 500,
     ) -> Dict[str, Tuple[Optional[float], Optional[float]]]:
         """geocode a batch of addresses with retries.
 
         Args:
             addresses: dictionary mapping IDs to address components
             max_retries: maximum number of retry attempts
+            checkpoint_path: path to save checkpoint
+            save_every: number of addresses between checkpoints
 
         Returns:
             dictionary mapping IDs to (lat, lng) tuples
         """
-        results = {}
+        results: Dict[str, Dict[str, Optional[Tuple[float, float]]]] = {}
+        processed = 0  # counter for periodic saves
         retry_delay = 1.0  # initial retry delay in seconds
 
-        async def _geocode_with_retry(id_: str, addr: Dict[str, str]) -> None:
+        async def _geocode_with_retry(id_: str, addr: Dict[str, str]):
+            """Worker coroutine that geocodes one address and returns its result."""
             retries = 0
             while retries <= max_retries:
                 try:
@@ -115,11 +126,10 @@ class GoogleGeocoder:
                         addr["area"],
                         addr["city"],
                     )
-                    results[id_] = {
+                    return id_, {
                         "gmaps_address": gmaps_address,
                         "coords": coords,
                     }
-                    break
                 except Exception as e:  # pylint: disable=W0718
                     retries += 1
                     if retries <= max_retries:
@@ -136,7 +146,10 @@ class GoogleGeocoder:
                         await asyncio.sleep(delay)
                     else:
                         logger.error("all retries failed for %s: %s", id_, str(e))
-                        results[id_] = None
+                        return id_, {
+                            "gmaps_address": None,
+                            "coords": None,
+                        }
 
         # process all addresses with progress bar
         tasks = [
@@ -145,47 +158,36 @@ class GoogleGeocoder:
             if all(v is not None for v in addr.values())
         ]
 
-        for task in tqdm(
+        for coro in tqdm(
             asyncio.as_completed(tasks),
             total=len(tasks),
             desc="Geocoding addresses",
         ):
-            await task
+            id_, res = await coro
+            results[id_] = res
+            processed += 1
+
+            if checkpoint_path and processed % save_every == 0:
+                try:
+                    checkpoint_path.write_text(
+                        json.dumps(results, indent=2, ensure_ascii=False)
+                    )
+                    logger.debug(
+                        "checkpoint saved after %d addresses -> %s",
+                        processed,
+                        checkpoint_path,
+                    )
+                except Exception as save_exc:  # pylint: disable=broad-except
+                    logger.warning("failed to write checkpoint: %s", save_exc)
+
+        # final checkpoint
+        if checkpoint_path:
+            try:
+                checkpoint_path.write_text(
+                    json.dumps(results, indent=2, ensure_ascii=False)
+                )
+                logger.info("final checkpoint saved to %s", checkpoint_path)
+            except Exception as save_exc:  # pylint: disable=broad-except
+                logger.warning("failed to write final checkpoint: %s", save_exc)
 
         return results
-
-    # def geocode_with_nominatim(
-    #     self, address: str, country: str, area: str, city: str, *, timeout: int = 10
-    # ) -> Optional[Tuple[str, Tuple[float, float]]]:
-    #     """Geocode a single address with Nominatim (simple retry-free helper)."""
-    #     try:
-    #         geolocator = Nominatim(user_agent="david.ampudia@nesta.org.uk", timeout=timeout)
-    #         location = geolocator.geocode(f"{address}, {country}, {area}, {city}")
-    #     except Exception as exc:  # pylint: disable=broad-except
-    #         logger.warning("Nominatim error for '%s': %s", address, exc)
-    #         return None
-
-    #     return (
-    #         None
-    #         if not location
-    #         else (location.address, (location.latitude, location.longitude))
-    #     )
-
-    # def geocode_with_nominatim_batch(
-    #     self, addresses: Dict[str, Dict[str, str]], *, timeout: int = 10
-    # ) -> Dict[str, Tuple[Optional[float], Optional[float]]]:
-    #     """Geocode a batch of addresses with Nominatim with a simple progress bar."""
-    #     results: Dict[str, Tuple[Optional[float], Optional[float]]] = {}
-
-    #     for id_, addr in tqdm_sync(
-    #         addresses.items(), total=len(addresses), desc="Geocoding (Nominatim)"
-    #     ):
-    #         results[id_] = self.geocode_with_nominatim(
-    #             addr["formatted_address"],
-    #             addr["country"],
-    #             addr["area"],
-    #             addr["city"],
-    #             timeout=timeout,
-    #         )
-
-    #     return results

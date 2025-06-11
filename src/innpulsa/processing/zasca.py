@@ -114,7 +114,7 @@ def process_zasca_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def read_and_process_zasca(save_processed: bool = True) -> pd.DataFrame:
+def read_and_process_zasca() -> pd.DataFrame:
     """Read and process ZASCA data from multiple cohort files.
 
     Args:
@@ -157,16 +157,6 @@ def read_and_process_zasca(save_processed: bool = True) -> pd.DataFrame:
     logger.debug("combining and processing cohort data")
     result = pd.concat(dfs, ignore_index=True)
     result = process_zasca_data(result)
-
-    if save_processed:
-        # ensure output directory exists
-        output_dir = Path(DATA_DIR) / "processed"
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # save processed data
-        output_path = output_dir / "zasca_total.csv"
-        logger.info("saving processed ZASCA data to %s", output_path)
-        result.to_csv(output_path, index=False, encoding="utf-8-sig")
 
     logger.info("completed ZASCA data processing with %d records", len(result))
     return result

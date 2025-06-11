@@ -28,7 +28,7 @@ logger = configure_logger("geolocation.rues_llm")
 
 OUTPUT_DIR = Path(DATA_DIR) / "processed/geolocation/rues_addresses"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-TARGET_N = 9_000
+TARGET_N = 520
 
 
 def _normalise_city(series: pd.Series) -> pd.Series:

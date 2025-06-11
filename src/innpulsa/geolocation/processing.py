@@ -21,7 +21,7 @@ class GeolocationProcessor:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         logger.debug("initialised processor with output directory: %s", self.output_dir)
 
-    async def process_and_compile(self, df: pd.DataFrame) -> Tuple[Optional[Path], int]:
+    async def process_and_compile(self, df: pd.DataFrame, prompt: str) -> pd.DataFrame:
         """process addresses from dataframe and compile results.
 
         Args:
@@ -33,7 +33,7 @@ class GeolocationProcessor:
 
         # process addresses
         logger.info("starting address processing")
-        await normalise_addresses_using_llm(df, self.output_dir)
+        await normalise_addresses_using_llm(df, self.output_dir, prompt)
 
         # compile results
         logger.info("compiling results")
@@ -42,12 +42,7 @@ class GeolocationProcessor:
             logger.warning("no results to compile")
             return None, 0
 
-        # save to CSV
-        output_file = Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv"
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-        results_df.to_csv(output_file, index=False, encoding="utf-8-sig")
-        logger.info("saved %d records to %s", len(results_df), output_file)
-        return output_file, len(results_df)
+        return results_df
 
     def _compile_results(self) -> Optional[pd.DataFrame]:
         """compile all results into a DataFrame."""
@@ -116,14 +111,3 @@ class GeolocationProcessor:
 
         logger.debug("successfully compiled %d records", len(records))
         return pd.DataFrame(records)
-
-    def save_results(self, output_file: Optional[Path] = None) -> Optional[Path]:
-        """Compile and save results to CSV."""
-        df = self._compile_results()
-        if df is None:
-            return None
-
-        output_file = output_file or self.output_dir.parent / "zasca_addresses.csv"
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(output_file, index=False)
-        return output_file

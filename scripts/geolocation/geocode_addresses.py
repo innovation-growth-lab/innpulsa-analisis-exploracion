@@ -51,9 +51,16 @@ async def google_geocode(dataset: str) -> int:
     }
 
     # initialise geocoder and process addresses
+    checkpoint_path = (
+        Path(DATA_DIR) / f"processed/geolocation/{dataset}_coordinates_checkpoint.json"
+    )
+
     async with GoogleGeocoder(api_key) as geocoder:
         logger.info("starting geocoding for %d addresses", len(addresses))
-        results = await geocoder.geocode_batch(addresses)
+        results = await geocoder.geocode_batch(
+            addresses,
+            checkpoint_path=checkpoint_path,
+        )
 
     # convert results to dataframe
     output_records = []
