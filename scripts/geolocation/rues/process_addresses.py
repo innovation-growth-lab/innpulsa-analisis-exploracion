@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Process RUES commercial addresses via Gemini LLM to standardise street names.
 
-python scripts/geolocation/rues/process_rues_addresses.py --prompt rues
+python scripts/geolocation/rues/process_addresses.py --prompt rues
 """
 
 import asyncio
@@ -114,6 +114,9 @@ async def run_pipeline(prompt: str) -> int:
         Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv",
         encoding="latin1",
     )
+
+    # select only rues_df observations in source_year 2023
+    rues_df = rues_df[rues_df["source_year"] == 2023]
 
     rues_filtered = filter_rues_against_zasca(rues_df, zasca_geocoded)
     rues_prepared = build_address(rues_filtered)
