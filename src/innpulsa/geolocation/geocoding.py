@@ -5,6 +5,8 @@ import urllib.parse
 from typing import Dict, Optional, Tuple
 import aiohttp
 from tqdm.asyncio import tqdm
+from tqdm import tqdm as tqdm_sync
+from geopy.geocoders import Nominatim
 
 from innpulsa.logging import configure_logger
 
@@ -154,5 +156,41 @@ class GoogleGeocoder:
             desc="Geocoding addresses",
         ):
             await task
+
+        return results
+
+    def geocode_with_nominatim(
+        self, address: str, country: str, area: str, city: str, *, timeout: int = 10
+    ) -> Optional[Tuple[str, Tuple[float, float]]]:
+        """Geocode a single address with Nominatim (simple retry-free helper)."""
+        try:
+            geolocator = Nominatim(user_agent="david.ampudia@nesta.org.uk", timeout=timeout)
+            location = geolocator.geocode(f"{address}, {country}, {area}, {city}")
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.warning("Nominatim error for '%s': %s", address, exc)
+            return None
+
+        return (
+            None
+            if not location
+            else (location.address, (location.latitude, location.longitude))
+        )
+
+    def geocode_with_nominatim_batch(
+        self, addresses: Dict[str, Dict[str, str]], *, timeout: int = 10
+    ) -> Dict[str, Tuple[Optional[float], Optional[float]]]:
+        """Geocode a batch of addresses with Nominatim with a simple progress bar."""
+        results: Dict[str, Tuple[Optional[float], Optional[float]]] = {}
+
+        for id_, addr in tqdm_sync(
+            addresses.items(), total=len(addresses), desc="Geocoding (Nominatim)"
+        ):
+            results[id_] = self.geocode_with_nominatim(
+                addr["formatted_address"],
+                addr["country"],
+                addr["area"],
+                addr["city"],
+                timeout=timeout,
+            )
 
         return results
