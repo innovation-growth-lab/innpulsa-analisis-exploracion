@@ -28,9 +28,26 @@ logger = configure_logger("geolocation.rues_llm")
 
 OUTPUT_DIR = Path(DATA_DIR) / "processed/geolocation/rues_addresses"
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+TARGET_N = 9_000
 
 
-def filter_rues_against_zasca(rues: pd.DataFrame, zasca: pd.DataFrame) -> pd.DataFrame:
+def _normalise_city(series: pd.Series) -> pd.Series:
+    """Lower-case, strip, and remove accents from city names."""
+    return (
+        series.fillna("")
+        .str.lower()
+        .str.strip()
+        .str.normalize("NFKD")
+        .str.encode("ascii", errors="ignore")
+        .str.decode("utf-8")
+    )
+
+
+def filter_rues_against_zasca(
+    rues: pd.DataFrame,
+    zasca: pd.DataFrame,
+    target_n: int = TARGET_N,
+) -> pd.DataFrame:
     """Filter RUES data to only include rows whose city appears in ZASCA.
     It also samples 500 rows from each city to reduce the number of addresses
     processed by the LLM.
@@ -44,46 +61,54 @@ def filter_rues_against_zasca(rues: pd.DataFrame, zasca: pd.DataFrame) -> pd.Dat
     """
 
     # [AD-HOC] ZASCA fixes
-    zasca.loc[zasca["city"] == "Donmatías", "city"] = "Don Matías"
-
-    # In the future we'll need to add Bogota (a state in RUES nomenclature)
-
-    valid_cities = (
-        zasca["city"]
-        .dropna()
-        .str.lower()
-        .str.strip()
-        .str.normalize("NFKD")
-        .str.encode("ascii", errors="ignore")
-        .str.decode("utf-8")
-        .drop_duplicates()
-    )
-
+    zasca = zasca.copy()
     rues = rues.copy()
-    rues["city_norm"] = (
-        rues["city"]
-        .str.lower()
-        .str.strip()
-        .str.normalize("NFKD")
-        .str.encode("ascii", errors="ignore")
-        .str.decode("utf-8")
+    zasca.loc[zasca["city"] == "Donmatías", "city"] = "Don Matías"
+    zasca["city_norm"] = _normalise_city(zasca["city"])
+    rues["city_norm"] = _normalise_city(rues["city"])
+
+    shared_cities = zasca["city_norm"].dropna().unique()
+    filtered = rues[rues["city_norm"].isin(shared_cities)].copy()
+
+    total_available = len(filtered)
+    if total_available <= target_n:
+        logger.info(
+            "Filtered RUES rows (%d) ≤ target %d – taking all of them.",
+            total_available,
+            target_n,
+        )
+        return filtered.drop(columns=["city_norm"])
+
+    # build sampling weight per row = ZASCA_city_freq / RUES_city_freq
+    z_freq = zasca.groupby("city_norm").size().rename("z_freq")
+    r_freq = filtered.groupby("city_norm").size().rename("r_freq")
+    freq_df = pd.concat([z_freq, r_freq], axis=1).reset_index()
+
+    # weight per city proportional to how under-represented it is in RUES relative to ZASCA
+    freq_df["weight"] = freq_df["z_freq"] / freq_df["r_freq"]
+
+    filtered = filtered.merge(
+        freq_df[["city_norm", "weight"]], on="city_norm", how="left"
     )
 
-    filtered = rues[rues["city_norm"].isin(valid_cities)]
+    # Normalise weights to avoid NaNs or zeros
+    filtered["weight"].fillna(1e-6, inplace=True)
 
-    # sample from each city
-    filtered = (
-        filtered.groupby("city_norm")
-        .apply(lambda x: x.sample(n=min(len(x), 1000), random_state=42))
-        .reset_index(drop=True)
+    sample_df = filtered.sample(
+        n=target_n,
+        replace=False,
+        weights=filtered["weight"],
+        random_state=42,
     )
 
     logger.info(
-        "filtered RUES from %d ➜ %d rows with matching city",
+        "Filtered RUES from %d ➜ %d rows (sampled to target %d)",
         len(rues),
-        len(filtered),
+        len(sample_df),
+        target_n,
     )
-    return filtered.drop(columns=["city_norm"])
+
+    return sample_df.drop(columns=["city_norm", "weight"])
 
 
 def build_address(df: pd.DataFrame) -> pd.DataFrame:
