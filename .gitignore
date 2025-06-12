@@ -12,6 +12,7 @@ bin/
 
 # But allow the path to geolocation/
 data/processed/rues_total.csv
+data/00_geih/*
 data/01_raw/*
 !data/processed/geolocation/
 !data/processed/geolocation/**
