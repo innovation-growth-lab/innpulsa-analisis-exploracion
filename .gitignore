@@ -6,7 +6,17 @@ jairo/
 *__pycache__/
 *.egg-info/
 requirements.txt
-data/
 *.lock
 *.log
 bin/
+
+# But allow the path to geolocation/
+data/processed/*
+data/01_raw/*
+!data/processed/geolocation/
+!data/processed/geolocation/**
+data/processed/geolocation/rues_addresses/
+data/processed/geolocation/zasca_addresses/
+
+# anything with checkpoint
+*checkpoint*
