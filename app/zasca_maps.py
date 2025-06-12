@@ -20,9 +20,9 @@ import numpy as np
 DATA_DIR = Path("data/processed/geolocation")
 ZASCA_ADDRESSES_PATH = DATA_DIR / "zasca_addresses.csv"
 ZASCA_COORDS_PATH = DATA_DIR / "zasca_coordinates.csv"
-RUES_COORDS_PATH = DATA_DIR / "rues_coordinates.csv"
 ZASCA_TOTAL_PATH = DATA_DIR / "../zasca_total.csv"
-RUES_TOTAL_PATH = DATA_DIR / "../rues_total.csv"
+RUES_COORDS_PATH = DATA_DIR / "rues_coordinates.csv"
+RUES_FILTERED_PATH = DATA_DIR / "rues_total_merged.csv"
 
 CITY_CONFIG = {
     "Cúcuta": {"center": (7.889, -72.505), "zoom": 12},
@@ -61,26 +61,32 @@ def _load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     zasca_addresses = pd.read_csv(ZASCA_ADDRESSES_PATH, encoding="utf-8-sig")
     zasca_coords = pd.read_csv(ZASCA_COORDS_PATH, encoding="utf-8-sig")
     rues_coords = pd.read_csv(RUES_COORDS_PATH, encoding="utf-8-sig")
+    rues_filtered = pd.read_csv(RUES_FILTERED_PATH, encoding="utf-8-sig")
 
-    rues_total = pd.read_csv(RUES_TOTAL_PATH, encoding="utf-8-sig", low_memory=False)
+    # enrich coordinate dataframe with economic activity and city info
+    if "id" in rues_coords.columns and "nit" in rues_filtered.columns:
+        rues_coords = rues_coords.merge(
+            rues_filtered[["nit", "ciiu_principal", "city"]],
+            left_on="id",
+            right_on="nit",
+            how="left",
+        )
+        # drop redundant key to avoid confusion
+        rues_coords = rues_coords.drop(columns=["nit"], errors="ignore")
 
-    # filter rues_total to only include rows in rues_coords
-    rues_total = rues_total[
-        rues_total["nit"].isin(rues_coords["id"].astype(str))
-        | rues_total["nit"].isin(zasca_addresses["nit"].astype(str))
-    ].query("source_year == 2023")
-
-    # merge in_rues column from zasca_addresses to rues_total
-    rues_total = rues_total.merge(
-        zasca_addresses[["nit", "in_rues"]],
-        on="nit",
-        how="left",
+    # identify the top 3 ciiu_principal by major city among in_rues ==True
+    top_3_ciiu_principal = (
+        rues_filtered[
+            (rues_filtered["in_rues"] == True)  # pylint: disable=C0121
+            & (rues_filtered["city"].isin(["Medellin", "Cucuta", "Bucaramanga"]))
+        ]
+        .groupby(["ciiu_principal", "city"])
+        .size()
+        .reset_index(name="count")
+        .sort_values(["city", "count"], ascending=[True, False])
+        .groupby("city")
+        .head(3)
     )
-
-    # [TO DO] Filter by ciiu principal
-
-    # fillna in_rues column
-    rues_total["in_rues"].fillna(False, inplace=True)
 
     # add in_rues to zasca_coords
     zasca_coords = zasca_coords.merge(
@@ -99,7 +105,7 @@ def _load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
         df.dropna(subset=["latitude", "longitude"], inplace=True)
 
-    return rues_total, zasca_coords, rues_coords
+    return rues_filtered, top_3_ciiu_principal, zasca_coords, rues_coords
 
 
 def _make_layer(df: pd.DataFrame, colour: list[int]) -> pdk.Layer:
@@ -118,7 +124,7 @@ def main() -> None:
     st.set_page_config(page_title="Cohortes ZASCA y RUES", layout="wide")
     st.title("Cohortes ZASCA y RUES")
 
-    rues_total, zasca_coords, rues_coords = _load_data()
+    rues_total, top_3_ciiu_principal, zasca_coords, rues_coords = _load_data()
 
     maps_tab, strategies_tab = st.tabs(["Mapas", "Estrategias"])
 
