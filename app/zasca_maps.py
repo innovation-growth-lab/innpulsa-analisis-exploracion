@@ -74,6 +74,7 @@ def _load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     zasca_coords = pd.read_csv(ZASCA_COORDS_PATH, encoding="utf-8-sig", index_col=0)
     rues_coords = pd.read_csv(RUES_COORDS_PATH, encoding="utf-8-sig", index_col=0)
     rues_filtered = pd.read_csv(RUES_FILTERED_PATH, encoding="utf-8-sig", index_col=0)
+    zasca_total = pd.read_csv(ZASCA_TOTAL_PATH, encoding="utf-8-sig")
 
     # enrich coordinate dataframe with economic activity and city info
     rues_coords = rues_coords.merge(
@@ -116,13 +117,36 @@ def _load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
         how="left",
     )
 
-    # fill in_rues column from zasca_addresses, ciiu to int64
+    # add city from addresses
+    zasca_coords = zasca_coords.merge(
+        zasca_addresses.reset_index()[["id", "city"]],
+        on="id",
+        how="left",
+        suffixes=("", "_zasca"),
+    )
+
+    # rename San José de Cúcuta to Cúcuta
+    zasca_coords["city_zasca"] = zasca_coords["city_zasca"].replace(
+        "San José de Cúcuta", "Cúcuta"
+    )
+
+    # fill in_rues column, ciiu to int64
     zasca_coords["in_rues"] = (
         zasca_coords["in_rues"].fillna(False).infer_objects(copy=False)
     )
     zasca_coords["ciiu_principal"] = zasca_coords["ciiu_principal"].astype(
         pd.Int64Dtype()
     )
+
+    # finally, add sales2022s and emp_total from zasca_total
+    zasca_coords = zasca_coords.merge(
+        zasca_total[["numberid_emp1", "sales2022s", "emp_total"]],
+        left_on="id",
+        right_on="numberid_emp1",
+        how="left",
+    )
+
+    zasca_coords.drop_duplicates(subset=["id"], inplace=True)
 
     # normalise column names
     zasca_coords.columns = [c.lower() for c in zasca_coords.columns]
@@ -211,14 +235,6 @@ def main() -> None:
                 zasca_plot_df = zasca_coords.copy()
                 rues_plot_df = rues_coords.copy()
 
-                # # filtrar por ciudad
-                # zasca_plot_df = zasca_plot_df[
-                #     zasca_plot_df["city"].apply(_normalise_str) == city_norm
-                # ]
-                # rues_plot_df = rues_plot_df[
-                #     rues_plot_df["city"].apply(_normalise_str) == city_norm
-                # ]
-
                 # filtrar por actividad económica (si procede)
                 if codes_filter is not None:
                     zasca_plot_df = zasca_plot_df[
@@ -280,10 +296,8 @@ def main() -> None:
 
                 with col_side:
                     st.subheader("Detalles")
-                    st.markdown("Distribución de variables económicas.")
 
                     # densidades para la ciudad
-                    city_norm = _normalise_str(city)
                     city_df = rues_filtered[
                         rues_filtered["city"]
                         .apply(_normalise_str)
@@ -293,19 +307,34 @@ def main() -> None:
                     if codes_filter is not None:
                         city_df = city_df[city_df["ciiu_principal"].isin(codes_filter)]
 
-                    if not city_df.empty:
-                        fig = build_density_plot(
-                            city_df,
-                            [
-                                "empleados",
-                                "activos_total",
-                                "cantidad_mujeres_empleadas",
-                                "ingresos_actividad_ordinaria",
-                            ],
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        st.info("No hay datos de RUES para esta ciudad.")
+                    st.caption("Unidades productivas en RUES (con presencia en ZASCA vs. sin ZASCA)")
+                    fig = build_density_plot(
+                        city_df,
+                        [
+                            "empleados",
+                            "activos_total",
+                            "cantidad_mujeres_empleadas",
+                            "ingresos_actividad_ordinaria",
+                        ],
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+
+                    # Conjunto ZASCA (in_rues = True vs False)
+                    st.caption("Unidades productivas en ZASCA (presencia en RUES vs. sin RUES)")
+
+                    zasca_city_df = zasca_coords[
+                        zasca_coords["city_zasca"]
+                        .apply(_normalise_str)
+                        .str.contains(city_norm)
+                    ].copy()
+
+                    # No filtramos por actividad económica aquí para incluir ambas cohortes
+
+                    fig2 = build_density_plot_zasca(
+                        zasca_city_df,
+                        ["sales2022s", "emp_total"],
+                    )
+                    st.plotly_chart(fig2, use_container_width=True)
 
     with strategies_tab:
         st.header("Estrategias")
@@ -319,6 +348,8 @@ _METRIC_LABELS = {
     "activos_total": "Activos totales (COP)",
     "cantidad_mujeres_empleadas": "Mujeres empleadas",
     "ingresos_actividad_ordinaria": "Ingresos ordinarios (COP)",
+    "sales2022s": "Ventas 2022 (COP)",
+    "emp_total": "Empleo total (ZASCA)",
 }
 
 
@@ -332,13 +363,21 @@ def _to_log(series: pd.Series) -> pd.Series:
 def build_density_plot(df: pd.DataFrame, variables: List[str]) -> go.Figure:
     """Crear subplots con densidades para *variables* separadas por in_rues."""
 
+    # elegir disposición según número de variables (2 → 1×2, 4 → 2×2)
+    if len(variables) == 2:
+        rows, cols = 1, 2
+    else:
+        rows, cols = 2, 2
+
     fig = make_subplots(
-        rows=2, cols=2, subplot_titles=[_METRIC_LABELS[v] for v in variables]
+        rows=rows,
+        cols=cols,
+        subplot_titles=[_METRIC_LABELS.get(v, v) for v in variables],
     )
 
-    pos = [(1, 1), (1, 2), (2, 1), (2, 2)]
-
-    for var, (r, c) in zip(variables, pos):
+    for i, var in enumerate(variables):
+        r = i // cols + 1
+        c = i % cols + 1
         for flag, colour in zip([True, False], ["seagreen", "indianred"]):
             subset = df[df["in_rues"] == flag]
             values = _to_log(subset[var]).dropna()
@@ -351,7 +390,7 @@ def build_density_plot(df: pd.DataFrame, variables: List[str]) -> go.Figure:
                     name=f"{'ZASCA+RUES' if flag else 'Solo RUES'}",
                     marker_color=colour,
                     opacity=0.5,
-                    showlegend=(r == 1 and c == 1),
+                    showlegend=(i == 0),
                 ),
                 row=r,
                 col=c,
@@ -359,7 +398,53 @@ def build_density_plot(df: pd.DataFrame, variables: List[str]) -> go.Figure:
 
     # ejes en escala log (ya están los datos log10, pero evita confusión de bins)
     fig.update_xaxes(title_text="log₁₀(valor)", type="linear")
-    fig.update_layout(height=500, margin=dict(t=40, r=10, l=10, b=10))
+    fig.update_layout(height=400, margin=dict(t=40, r=10, l=10, b=10))
+    return fig
+
+
+def build_density_plot_zasca(df: pd.DataFrame, variables: List[str]) -> go.Figure:
+    """Subgráficos de densidad para empresas ZASCA.
+
+    • Verde oscuro  → in_rues == True (tiene registro en RUES)
+    • Verde claro   → in_rues == False (sin registro en RUES)
+    """
+
+    if len(variables) == 2:
+        rows, cols = 1, 2
+    else:
+        rows, cols = 2, 2
+
+    fig = make_subplots(
+        rows=rows,
+        cols=cols,
+        subplot_titles=[_METRIC_LABELS.get(v, v) for v in variables],
+    )
+
+    colours = ["darkgreen", "lightgreen"]  # True, False
+    legend_names = ["En RUES", "Sin RUES"]
+
+    for i, var in enumerate(variables):
+        r = i // cols + 1
+        c = i % cols + 1
+        for flag, colour, legend in zip([True, False], colours, legend_names):
+            values = _to_log(df.loc[df["in_rues"] == flag, var]).dropna()
+            if values.empty:
+                continue
+            fig.add_trace(
+                go.Histogram(
+                    x=values,
+                    histnorm="probability density",
+                    name=legend,
+                    marker_color=colour,
+                    opacity=0.5,
+                    showlegend=(i == 0),
+                ),
+                row=r,
+                col=c,
+            )
+
+    fig.update_xaxes(title_text="log₁₀(valor)", type="linear")
+    fig.update_layout(height=200, margin=dict(t=40, r=10, l=10, b=10))
     return fig
 
 
