@@ -10,7 +10,7 @@ import streamlit as st
 import pydeck as pdk
 
 from constants import CITY_CONFIG, CLR_ZASCA_DARK, CLR_ZASCA_LIGHT, CLR_RUES
-from data_loader import load_data
+from data_loader import load_data, _normalise_str
 from plots import (
     build_density_plot,
     build_density_plot_zasca,
@@ -45,15 +45,15 @@ def main() -> None:
         for city, tab in zip(CITY_CONFIG.keys(), city_tabs):
             with tab:
                 cfg = CITY_CONFIG[city]
-                city_norm = city.lower()
+                city_norm = _normalise_str(city)
 
                 # Selector de actividad económica
                 ciiu_opts = top_3_ciiu_principal[
-                    top_3_ciiu_principal["city"].str.lower() == city_norm
+                    top_3_ciiu_principal["city"].apply(_normalise_str).str.contains(city_norm)
                 ]["ciiu_principal"].tolist()
                 ciiu_labels = [format_ciiu(c) for c in ciiu_opts]
 
-                col_filter, _, _ = st.columns([1, 3, 1])
+                col_filter, col_toggle = st.columns([4, 1])
                 with col_filter:
                     select_options = ["Todas", "Top 3"] + ciiu_labels
                     selected_label = st.selectbox(
@@ -62,8 +62,10 @@ def main() -> None:
                         index=0,
                         key=f"ciiu_sel_{city}",
                     )
+
+                with col_toggle:
                     show_rues = st.checkbox(
-                        "Mostrar puntos Solo RUES (rojo)",
+                        "Solo RUES",
                         value=True,
                         key=f"show_rues_{city}",
                     )
@@ -142,7 +144,7 @@ def main() -> None:
                     )
 
                     city_df = rues_filtered[
-                        rues_filtered["city"].str.lower() == city_norm
+                        rues_filtered["city"].apply(_normalise_str).str.contains(city_norm)
                     ]
                     if codes_filter is not None:
                         city_df = city_df[city_df["ciiu_principal"].isin(codes_filter)]
@@ -156,7 +158,9 @@ def main() -> None:
                             "ingresos_actividad_ordinaria",
                         ],
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(
+                        fig, use_container_width=True, key=f"plot_rues_{city}"
+                    )
 
                     # ZASCA plot
                     st.caption(
@@ -164,13 +168,15 @@ def main() -> None:
                     )
 
                     zasca_city_df = zasca_coords[
-                        zasca_coords["city_zasca"].str.lower() == city_norm
+                        zasca_coords["city_zasca"].apply(_normalise_str).str.contains(city_norm)
                     ]
                     fig2 = build_density_plot_zasca(
                         zasca_city_df,
                         ["sales2022s", "emp_total"],
                     )
-                    st.plotly_chart(fig2, use_container_width=True)
+                    st.plotly_chart(
+                        fig2, use_container_width=True, key=f"plot_zasca_{city}"
+                    )
 
     with strategies_tab:
         st.header("Estrategias")

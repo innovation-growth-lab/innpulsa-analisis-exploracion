@@ -66,13 +66,24 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]
         .head(3)
     )
 
-    # merge ZASCA addresses
+    # merge ZASCA addresses -> ensure we preserve city info as 'city_zasca'
     zasca_coords = zasca_coords.merge(
         zasca_addresses.reset_index()[["id", "nit", "city"]],
         on="id",
         how="left",
         suffixes=("", "_zasca"),
     )
+
+    # Ensure 'nit' dtype is consistent (string) across dataframes
+    for df in (zasca_coords, rues_filtered):
+        if "nit" in df.columns:
+            df["nit"] = df["nit"].astype(str).str.strip()
+
+    # If the suffix did not produce 'city_zasca' (because original zasca_coords
+    # lacked a 'city' column), rename the merged 'city' to 'city_zasca'.
+    if "city_zasca" not in zasca_coords.columns and "city" in zasca_coords.columns:
+        zasca_coords = zasca_coords.rename(columns={"city": "city_zasca"})
+
     # fix city names
     zasca_coords["city_zasca"] = zasca_coords["city_zasca"].replace(
         "San José de Cúcuta", "Cúcuta"
