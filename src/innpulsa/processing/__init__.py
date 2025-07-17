@@ -2,7 +2,7 @@
 Processing module initialization.
 """
 
-from .rues import read_rues
-from .zasca import read_and_process_zasca, read_processed_zasca
+from .rues import process_rues
+from .zasca import process_zasca
 
-__all__ = ["read_rues", "read_and_process_zasca", "read_processed_zasca"]
+__all__ = ["process_rues", "process_zasca"]
