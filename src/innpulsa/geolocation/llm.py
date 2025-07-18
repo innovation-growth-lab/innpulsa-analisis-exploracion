@@ -106,7 +106,11 @@ def clean_json_response(response_text: str) -> str:
     text = text.strip()
 
     # Validate it's parseable JSON (will raise JSONDecodeError if not)
-    json.loads(text)  # validation only
+    try:
+        json.loads(text)  # validation only
+    except json.JSONDecodeError as e:
+        logger.error("invalid JSON response: %s", str(e))
+        return ""
 
     return text
 
@@ -245,7 +249,7 @@ async def normalise_addresses_using_llm(
     output_dir: Path,
     prompt: str,
     batch_size: int = 10,
-    calls_per_second: float = 4,  # 15 requests per minute
+    calls_per_second: float = 0.125,  # 7.5 requests per minute
 ) -> Dict[str, int]:
     """process all ZASCA addresses using LLM with rate limiting.
 

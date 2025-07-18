@@ -6,25 +6,24 @@ python scripts/geolocation/rues/process_addresses.py --prompt rues
 
 import asyncio
 import sys
-import argparse
 from pathlib import Path
 
-from innpulsa.processing.rues import read_processed_rues
-from innpulsa.loaders import load_csv
-from innpulsa.geolocation.address_processor import AddressProcessor
-from innpulsa.settings import DATA_DIR
 from innpulsa.logging import configure_logger
+from innpulsa.loaders import load_csv, load_processed_rues
+from innpulsa.settings import DATA_DIR
+from innpulsa.geolocation.prompts import SYSTEM_PROMPT_RUES
+from innpulsa.geolocation.address_processor import AddressProcessor
 
 logger = configure_logger("geolocation.rues_llm")
 
 
-async def run_pipeline(prompt: str) -> int:
+async def run_pipeline() -> int:
     """Run the RUES address processing pipeline."""
     # Initialise shared processor for RUES dataset
     processor = AddressProcessor("rues")
 
     # Load data
-    rues_df = read_processed_rues()
+    rues_df = load_processed_rues()
     zasca_geocoded = load_csv(
         Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv",
         encoding="utf-8-sig",
@@ -35,7 +34,10 @@ async def run_pipeline(prompt: str) -> int:
 
     # Process addresses using shared processor
     results_df = await processor.process_addresses(
-        df=rues_df, prompt=prompt, filter_against_zasca=zasca_geocoded, target_n=520
+        df=rues_df,
+        prompt=SYSTEM_PROMPT_RUES,
+        filter_against_zasca=zasca_geocoded,
+        target_n=520,
     )
 
     if results_df is None:
@@ -53,15 +55,4 @@ async def run_pipeline(prompt: str) -> int:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Process RUES addresses with Gemini LLM and standardise street names",
-    )
-    parser.add_argument(
-        "--prompt",
-        choices=["rues"],
-        default="rues",
-        help="LLM prompt to use (default: rues)",
-    )
-
-    args = parser.parse_args()
-    sys.exit(asyncio.run(run_pipeline(args.prompt)))
+    sys.exit(asyncio.run(run_pipeline()))

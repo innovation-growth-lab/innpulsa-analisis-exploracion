@@ -24,7 +24,7 @@ class RateLimiter:  # pylint: disable=too-few-public-methods
 
     active_batches: int = 0  # Class-level counter for concurrent calls
 
-    def __init__(self, calls_per_second: float = 1.0):
+    def __init__(self, calls_per_second: float = 0.25):
         if calls_per_second <= 0:
             raise ValueError("`calls_per_second` must be > 0")
 

@@ -9,10 +9,18 @@ from __future__ import annotations
 import pandas as pd
 
 from .generic import load_json, load_csv, load_stata
-from .rues import load_rues
-from .zasca import load_zasca
+from .rues import load_rues, load_processed_rues
+from .zasca import load_zasca, load_processed_zasca
 
-__all__ = ["load_rues", "load_zasca", "load_json", "load_csv", "load_stata"]
+__all__ = [
+    "load_rues",
+    "load_zasca",
+    "load_json",
+    "load_csv",
+    "load_stata",
+    "load_processed_rues",
+    "load_processed_zasca",
+]
 
 
 # Specific loaders

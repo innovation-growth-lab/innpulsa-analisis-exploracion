@@ -1,4 +1,4 @@
-﻿numberid_emp1,nit,city,address,estab_firm,sex_emp1,sales2020s,sales2021s,sales2022s,sales2023q1s,sales2024q1s,salesaverage2024,weeklysales,emp_total,cohort,neighborhood,full_address,female,in_rues
+numberid_emp1,nit,city,address,estab_firm,sex_emp1,sales2020s,sales2021s,sales2022s,sales2023q1s,sales2024q1s,salesaverage2024,weeklysales,emp_total,cohort,neighborhood,full_address,female,in_rues
 60402468,,SAN JOSÉ DE CÚCUTA,AV 4 19-187,False,Femenino,0,0.0,0.0,1200000.0,,,100000.0,2,CUCC2,SAN LUIS,"AV 4 19-187, SAN LUIS, SAN JOSÉ DE CÚCUTA",True,False
 1090366210,1090366210,SAN JOSÉ DE CÚCUTA,MANZANA 32 LOTE 3,True,Masculino,1000000,4000000.0,15000000.0,32000000.0,38000000.0,12000000,1000000.0,10,CUCC2,BARRIO PALMERAS PARTE ALTA,"MANZANA 32 LOTE 3, BARRIO PALMERAS PARTE ALTA, SAN JOSÉ DE CÚCUTA",False,True
 88200074,901474279,SAN JOSÉ DE CÚCUTA,CALLE 15 # 13 - 15,True,Masculino,150000000,300000000.0,200000000.0,83333333.0,87000000.0,22000000,3500000.0,8,CUCC2,CONTENTO,"CALLE 15 # 13 - 15, CONTENTO, SAN JOSÉ DE CÚCUTA",False,True

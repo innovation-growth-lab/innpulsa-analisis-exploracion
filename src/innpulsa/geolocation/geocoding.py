@@ -18,7 +18,7 @@ logger = configure_logger("innpulsa.geolocation.geocoding")
 class GoogleGeocoder:
     """handles geocoding requests to Google's API with rate limiting and retries."""
 
-    def __init__(self, api_key: str, calls_per_second: float = 4):
+    def __init__(self, api_key: str, calls_per_second: float = 0.25):
         self.api_key = api_key
         self._rate_limiter = RateLimiter(calls_per_second)
         self._session = None
