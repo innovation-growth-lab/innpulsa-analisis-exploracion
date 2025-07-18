@@ -46,71 +46,138 @@ class AddressProcessor:
             .str.decode("utf-8")
         )
 
+    def _enrich_zasca_with_ciiu(
+        self, zasca: pd.DataFrame, rues: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Enrich ZASCA data with CIIU codes by merging with RUES on NIT."""
+        # Ensure consistent data types for merging
+        zasca = zasca.copy()
+        if "nit" in zasca.columns:
+            zasca["nit"] = zasca["nit"].astype(str).str.strip()
+        rues_nit_ciiu = rues[["nit", "ciiu_principal"]].copy()
+        rues_nit_ciiu["nit"] = rues_nit_ciiu["nit"].astype(str).str.strip()
+        rues_nit_ciiu["ciiu_principal"] = (
+            rues_nit_ciiu["ciiu_principal"].astype(str).str.strip()
+        )
+
+        return zasca.merge(rues_nit_ciiu, on="nit", how="left")
+
+    def _get_top_ciius_per_city(
+        self, zasca_with_ciiu: pd.DataFrame, top_n: int = 5
+    ) -> pd.DataFrame:
+        """Identify top N CIIU codes per city in ZASCA data."""
+        city_ciiu_counts = (
+            zasca_with_ciiu.dropna(subset=["city_norm", "ciiu_principal"])
+            .groupby(["city_norm", "ciiu_principal"])
+            .size()
+            .reset_index(name="count")
+            .sort_values(["city_norm", "count"], ascending=[True, False])
+            .groupby("city_norm")
+            .head(top_n)
+        )
+
+        logger.info(
+            "Identified top %d CIIUs for %d cities from ZASCA data",
+            top_n,
+            city_ciiu_counts["city_norm"].nunique(),
+        )
+        return city_ciiu_counts[["city_norm", "ciiu_principal"]]
+
+    def _filter_rues_by_city_ciius(
+        self, rues: pd.DataFrame, city_ciius: pd.DataFrame
+    ) -> pd.DataFrame:
+        """Filter RUES data to only include records matching city-specific CIIU codes."""
+        # Create a set of valid (city, ciiu) combinations for fast lookup
+        valid_combinations = set(
+            zip(city_ciius["city_norm"], city_ciius["ciiu_principal"])
+        )
+
+        # Filter RUES records that match valid city-CIIU combinations
+        rues_filtered = rues[
+            rues.apply(
+                lambda row: (row["city_norm"], row["ciiu_principal"])
+                in valid_combinations,
+                axis=1,
+            )
+        ].copy()
+
+        logger.info(
+            "Filtered RUES from %d to %d records using city-specific CIIU matching",
+            len(rues),
+            len(rues_filtered),
+        )
+        return rues_filtered
+
+    def _sample_with_city_weights(
+        self, filtered_rues: pd.DataFrame, zasca: pd.DataFrame, target_n: int
+    ) -> pd.DataFrame:
+        """Sample RUES records with city-based weighting."""
+        if len(filtered_rues) <= target_n:
+            logger.info(
+                "Taking all %d available records (≤ target %d)",
+                len(filtered_rues),
+                target_n,
+            )
+            return filtered_rues
+
+        # Calculate city-based sampling weights
+        zasca_city_counts = zasca.groupby("city_norm").size()
+        rues_city_counts = filtered_rues.groupby("city_norm").size()
+        city_weights = (zasca_city_counts / rues_city_counts).fillna(1e-6)
+
+        filtered_rues["weight"] = (
+            filtered_rues["city_norm"].map(city_weights).fillna(1e-6)
+        )
+
+        sampled_rues = filtered_rues.sample(
+            n=target_n, weights=filtered_rues["weight"], random_state=42, replace=False
+        )
+
+        logger.info(
+            "Sampled %d RUES records from %d available",
+            len(sampled_rues),
+            len(filtered_rues),
+        )
+        return sampled_rues.drop(columns=["weight"])
+
     def filter_rues_against_zasca(
         self,
         rues: pd.DataFrame,
         zasca: pd.DataFrame,
         target_n: int = 520,
     ) -> pd.DataFrame:
-        """Filter RUES data to only include rows whose city appears in ZASCA.
+        """Filter RUES data to include only rows matching ZASCA cities and their top CIIU codes.
 
         Args:
-            rues: DataFrame containing RUES records with city and state columns
-            zasca: DataFrame containing ZASCA records with city and state columns
+            rues: DataFrame containing RUES records with city, state, and ciiu_principal columns
+            zasca: DataFrame containing ZASCA records with city and nit columns
             target_n: Target number of rows to sample
 
         Returns:
-            DataFrame containing filtered RUES records that have cities present in ZASCA
+            DataFrame containing filtered RUES records matching ZASCA city-specific CIIU patterns
         """
-        # [AD-HOC] ZASCA fixes
-        zasca = zasca.copy()
         rues = rues.copy()
+        zasca = zasca.copy()
+
+        # Normalize city names for consistent matching
         zasca.loc[zasca["city"] == "Donmatías", "city"] = "Don Matías"
         zasca["city_norm"] = self._normalise_city(zasca["city"])
         rues["city_norm"] = self._normalise_city(rues["city"])
+        rues["ciiu_principal"] = rues["ciiu_principal"].astype(str).str.strip()
 
-        shared_cities = zasca["city_norm"].dropna().unique()
-        filtered = rues[rues["city_norm"].isin(shared_cities)].copy()
+        # Step 1: Enrich ZASCA with CIIU data from RUES
+        zasca_with_ciiu = self._enrich_zasca_with_ciiu(zasca, rues)
 
-        total_available = len(filtered)
-        if total_available <= target_n:
-            logger.info(
-                "Filtered RUES rows (%d) ≤ target %d – taking all of them.",
-                total_available,
-                target_n,
-            )
-            return filtered.drop(columns=["city_norm"])
+        # Step 2: Identify top CIIUs per city in ZASCA
+        city_ciius = self._get_top_ciius_per_city(zasca_with_ciiu, top_n=5)
 
-        # build sampling weight per row = ZASCA_city_freq / RUES_city_freq
-        z_freq = zasca.groupby("city_norm").size().rename("z_freq")
-        r_freq = filtered.groupby("city_norm").size().rename("r_freq")
-        freq_df = pd.concat([z_freq, r_freq], axis=1).reset_index()
+        # Step 3: Filter RUES by city-specific CIIU patterns
+        filtered_rues = self._filter_rues_by_city_ciius(rues, city_ciius)
 
-        # weight per city proportional to how under-represented it is in RUES relative to ZASCA
-        freq_df["weight"] = freq_df["z_freq"] / freq_df["r_freq"]
+        # Step 4: Sample with city-based weighting
+        sampled_rues = self._sample_with_city_weights(filtered_rues, zasca, target_n)
 
-        filtered = filtered.merge(
-            freq_df[["city_norm", "weight"]], on="city_norm", how="left"
-        )
-
-        # Normalise weights to avoid NaNs or zeros
-        filtered["weight"].fillna(1e-6, inplace=True)
-
-        sample_df = filtered.sample(
-            n=target_n,
-            replace=False,
-            weights=filtered["weight"],
-            random_state=42,
-        )
-
-        logger.info(
-            "Filtered RUES from %d ➜ %d rows (sampled to target %d)",
-            len(rues),
-            len(sample_df),
-            target_n,
-        )
-
-        return sample_df.drop(columns=["city_norm", "weight"])
+        return sampled_rues.drop(columns=["city_norm"], errors="ignore")
 
     def build_rues_address(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create full_address and id columns expected by LLM helpers for RUES data."""
@@ -148,7 +215,7 @@ class AddressProcessor:
         Args:
             df: DataFrame containing address data
             prompt: LLM prompt to use for processing
-            filter_against_zasca: Optional ZASCA DataFrame for filtering RUES data
+            filter_against_zasca: Optional ZASCA DataFrame for filtering RUES data by city and ciiu_principal
             target_n: Target number of rows for RUES filtering
 
         Returns:

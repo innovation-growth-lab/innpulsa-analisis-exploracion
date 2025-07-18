@@ -10,7 +10,7 @@ import pandas as pd
 
 from .generic import load_json, load_csv, load_stata
 from .rues import load_rues, load_processed_rues
-from .zasca import load_zasca, load_processed_zasca
+from .zasca import load_zasca, load_processed_zasca, load_zasca_addresses
 
 __all__ = [
     "load_rues",
@@ -20,6 +20,7 @@ __all__ = [
     "load_stata",
     "load_processed_rues",
     "load_processed_zasca",
+    "load_zasca_addresses",
 ]
 
 

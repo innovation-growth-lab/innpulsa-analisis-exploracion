@@ -125,3 +125,13 @@ def select_relevant_columns(df: pd.DataFrame, available_columns: list) -> pd.Dat
     )
     result = df[columns_to_keep].copy()
     return result if isinstance(result, pd.DataFrame) else result.to_frame()
+
+def load_zasca_addresses() -> pd.DataFrame:
+    """Read the pre-processed ZASCA addresses from CSV.
+
+    Returns:
+        pd.DataFrame: Processed ZASCA addresses from saved CSV file.
+    """
+    zasca_addresses_path = Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv"
+    logger.info("reading ZASCA addresses from %s", zasca_addresses_path)
+    return load_csv(zasca_addresses_path, encoding="utf-8-sig")
