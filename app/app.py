@@ -10,7 +10,7 @@ import streamlit as st
 import pydeck as pdk
 import pandas as pd
 
-from constants import CITY_CONFIG, CLR_ZASCA_DARK, CLR_ZASCA_LIGHT, CLR_RUES
+from constants import CITY_CONFIG, CLR_ZASCA_DARK, CLR_ZASCA_LIGHT, CLR_RUES, MAPBOX_API_KEY
 from data_loader import load_data, _normalise_str
 from plots import (
     build_density_plot,
@@ -114,7 +114,8 @@ def main() -> None:
                 layers = ([layer_rues] if show_rues else []) + [layer_zasca]
 
                 deck = pdk.Deck(
-                    map_style="mapbox://styles/mapbox/light-v9",
+                    map_style="mapbox://styles/mapbox/light-v10",
+                    api_keys={"mapbox": MAPBOX_API_KEY},
                     initial_view_state=pdk.ViewState(
                         latitude=cfg["center"][0],
                         longitude=cfg["center"][1],
