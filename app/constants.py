@@ -31,3 +31,6 @@ CIIU_DESCRIPTIONS: dict[int, str] = {
     1313: "Acabado de productos textiles",
     4642: "Comercio al por mayor de prendas de vestir",
 }
+
+# mapbox api public key
+MAPBOX_API_KEY = "pk.eyJ1IjoiYW1wdWRpYTE5IiwiYSI6ImNtODV0ejRwNDA1enoya3NjZGZ0NGoxMG0ifQ.jzHtCPNEDUWNu_OF-Ra-hg"

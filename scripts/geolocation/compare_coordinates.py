@@ -10,11 +10,10 @@ Output: a CSV with the merged data plus a boolean `coord_match` column that is
 True when both latitude and longitude differ by less than a small tolerance.
 """
 
-from pathlib import Path
 import sys
-import pandas as pd
-from innpulsa.loaders import load_csv
+from pathlib import Path
 
+from innpulsa.loaders import load_csv
 from innpulsa.settings import DATA_DIR
 from innpulsa.logging import configure_logger
 

@@ -5,16 +5,13 @@ This script reads data from both RUES and ZASCA sources and performs an inner me
 based on business identifiers.
 """
 
-import logging
 from pathlib import Path
 import pandas as pd
 
 from innpulsa.settings import DATA_DIR
+from innpulsa.logging import configure_logger
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger()
+logger = configure_logger("geolocation.merge_rues_zasca")
 DATA_DIR = Path(DATA_DIR)
 
 
