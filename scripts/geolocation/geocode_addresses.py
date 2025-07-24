@@ -13,15 +13,33 @@ from pathlib import Path
 import pandas as pd
 from tqdm import tqdm as tqdm_sync
 from geopy.geocoders import Nominatim
+from typing import Any
+from geopy.exc import GeocoderServiceError
 
 from innpulsa.settings import DATA_DIR
 from innpulsa.geolocation.geocoding import GoogleGeocoder
 from innpulsa.logging import configure_logger
 from innpulsa.loaders import load_csv
 
+TIMEOUT = 10
+
 
 async def google_geocode(dataset: str) -> int:
-    """Geocode addresses using the Google Maps API (async)."""
+    """
+    Geocode addresses using the Google Maps API (async).
+
+    This script will:
+    - Load the processed addresses
+    - Geocode the addresses using the Google Maps API
+    - Save the results
+
+    Args:
+        dataset: The dataset to geocode (zasca or rues)
+
+    Returns:
+        int: 0 if successful, 1 otherwise.
+
+    """
     logger = configure_logger("geolocation.geocoding")
 
     # check API key
@@ -35,29 +53,27 @@ async def google_geocode(dataset: str) -> int:
         input_path = Path(DATA_DIR) / f"processed/geolocation/{dataset}_addresses.csv"
         logger.info("reading addresses from %s", input_path)
         df = load_csv(input_path, encoding="utf-8-sig")
-    except Exception as e:  # pylint: disable=W0718
-        logger.error("failed to read input file: %s", str(e))
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("failed to read input file")
         return 1
 
     # prepare addresses for geocoding
     addresses = {
-        row["id" if "id" in df.columns else "nit"]: {
-            "formatted_address": row["formatted_address"],
-            "country": row["country"],
-            "area": row["area"],
-            "city": row["city"],
+        str(row["id" if "id" in df.columns else "nit"]): {
+            "formatted_address": str(row["formatted_address"]),
+            "country": str(row["country"]),
+            "area": str(row["area"]),
+            "city": str(row["city"]),
         }
         for _, row in df.iterrows()
     }
 
     # initialise geocoder and process addresses
-    checkpoint_path = (
-        Path(DATA_DIR) / f"processed/geolocation/{dataset}_coordinates_checkpoint.json"
-    )
+    checkpoint_path = Path(DATA_DIR) / f"processed/geolocation/{dataset}_coordinates_checkpoint.json"
 
     async with GoogleGeocoder(api_key) as geocoder:
         logger.info("starting geocoding for %d addresses", len(addresses))
-        results = await geocoder.geocode_batch(
+        results: dict[str, dict[str, Any]] = await geocoder.geocode_batch(
             addresses,
             checkpoint_path=checkpoint_path,
         )
@@ -65,14 +81,12 @@ async def google_geocode(dataset: str) -> int:
     # convert results to dataframe
     output_records = []
     for id_, result in results.items():
-        output_records.append(
-            {
-                "id": id_,
-                "gmaps_address": result["gmaps_address"],
-                "latitude": result["coords"][0] if result["coords"] else None,
-                "longitude": result["coords"][1] if result["coords"] else None,
-            }
-        )
+        output_records.append({
+            "id": id_,
+            "gmaps_address": result["gmaps_address"],
+            "latitude": result["coords"][0] if result["coords"] else None,
+            "longitude": result["coords"][1] if result["coords"] else None,
+        })
 
     # save results
     output_df = pd.DataFrame(output_records)
@@ -91,7 +105,21 @@ async def google_geocode(dataset: str) -> int:
 
 
 def nominatim_geocode(dataset: str) -> int:
-    """Geocode addresses using OpenStreetMap's Nominatim (sync)."""
+    """
+    Geocode addresses using OpenStreetMap's Nominatim (sync).
+
+    This script will:
+    - Load the processed addresses
+    - Geocode the addresses using Nominatim
+    - Save the results
+
+    Args:
+        dataset: The dataset to geocode (zasca or rues)
+
+    Returns:
+        int: 0 if successful, 1 otherwise.
+
+    """
     logger = configure_logger("geolocation.geocoding.nominatim")
 
     # load processed addresses (no need for API key)
@@ -100,49 +128,46 @@ def nominatim_geocode(dataset: str) -> int:
     df = load_csv(input_path, encoding="utf-8-sig")
 
     addresses = {
-        row["id" if "id" in df.columns else "nit"]: {
-            "formatted_address": row["formatted_address"],
-            "country": row["country"],
-            "area": row["area"],
-            "city": row["city"],
+        str(row["id" if "id" in df.columns else "nit"]): {
+            "formatted_address": str(row["formatted_address"]),
+            "country": str(row["country"]),
+            "area": str(row["area"]),
+            "city": str(row["city"]),
         }
         for _, row in df.iterrows()
     }
 
     # geocode with geopy directly (no need to instantiate GoogleGeocoder)
     geolocator = Nominatim(user_agent="innpulsa-geocoder@nesta.org.uk")
-    results = {}
+    results: dict[str, tuple[str, tuple[float, float]] | None] = {}
     logger.info("starting Nominatim geocoding for %d addresses", len(addresses))
-    for id_, addr in tqdm_sync(
-        addresses.items(), desc="Nominatim", total=len(addresses)
-    ):
+    for id_, addr in tqdm_sync(addresses.items(), desc="Nominatim", total=len(addresses)):
         query = f"{addr['formatted_address']}, {addr['country']}, {addr['area']}, {addr['city']}"
         try:
-            location = geolocator.geocode(query, timeout=10)
+            location = geolocator.geocode(query)
             results[id_] = (
                 None
                 if location is None
-                else (location.address, (location.latitude, location.longitude))
+                else (
+                    location.address,
+                    (location.latitude, location.longitude),
+                )
             )
-        except Exception as exc:  # pylint: disable=broad-except
+        except (GeocoderServiceError, ValueError) as exc:
             logger.warning("Nominatim error for %s: %s", id_, exc)
             results[id_] = None
 
     output_records = []
     for id_, result in results.items():
-        output_records.append(
-            {
-                "id": id_,
-                "nominatim_address": result[0] if result else None,
-                "latitude": result[1][0] if result and result[1] else None,
-                "longitude": result[1][1] if result and result[1] else None,
-            }
-        )
+        output_records.append({
+            "id": id_,
+            "nominatim_address": result[0] if result else None,
+            "latitude": result[1][0] if result and result[1] else None,
+            "longitude": result[1][1] if result and result[1] else None,
+        })
 
     output_df = pd.DataFrame(output_records)
-    output_path = (
-        Path(DATA_DIR) / f"processed/geolocation/{dataset}_coordinates_nominatim.csv"
-    )
+    output_path = Path(DATA_DIR) / f"processed/geolocation/{dataset}_coordinates_nominatim.csv"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_df.to_csv(output_path, index=False)
 
@@ -157,9 +182,7 @@ def nominatim_geocode(dataset: str) -> int:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Geocode ZASCA addresses using Google Maps or Nominatim."
-    )
+    parser = argparse.ArgumentParser(description="Geocode ZASCA addresses using Google Maps or Nominatim.")
     parser.add_argument(
         "--service",
         choices=["google", "nominatim"],

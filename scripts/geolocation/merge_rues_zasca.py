@@ -12,20 +12,26 @@ from innpulsa.settings import DATA_DIR
 from innpulsa.logging import configure_logger
 
 logger = configure_logger("geolocation.merge_rues_zasca")
-DATA_DIR = Path(DATA_DIR)
 
 
 def main():
-    """Main function to merge RUES and ZASCA data."""
+    """
+    Merge RUES and ZASCA data.
+
+    This script will:
+    - Read the RUES and ZASCA data
+    - Merge the data
+    - Save the results
+
+    Args:
+        None
+
+    """
     # read data from both sources
-    rues_total = pd.read_csv(
-        DATA_DIR / "processed/rues_total.csv", encoding="utf-8-sig", low_memory=False
-    )
-    rues_coords = pd.read_csv(
-        DATA_DIR / "processed/geolocation/rues_coordinates.csv", encoding="utf-8-sig"
-    )
+    rues_total = pd.read_csv(str(Path(DATA_DIR) / "processed/rues_total.csv"), encoding="utf-8-sig", low_memory=False)
+    rues_coords = pd.read_csv(str(Path(DATA_DIR) / "processed/geolocation/rues_coordinates.csv"), encoding="utf-8-sig")
     zasca_addresses = pd.read_csv(
-        DATA_DIR / "processed/geolocation/zasca_addresses.csv", encoding="utf-8-sig"
+        str(Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv"), encoding="utf-8-sig"
     )
 
     rues_total = rues_total.copy()
@@ -43,14 +49,10 @@ def main():
     )
 
     # merge data
-    rues_filtered["in_rues"] = (
-        rues_filtered["in_rues"].fillna(False).infer_objects(copy=False)
-    )
+    rues_filtered["in_rues"] = rues_filtered["in_rues"].fillna(value=False).infer_objects(copy=False)
 
     # save to csv
-    rues_filtered.to_csv(
-        DATA_DIR / "processed/geolocation/rues_total_merged.csv", encoding="utf-8-sig"
-    )
+    rues_filtered.to_csv(DATA_DIR / "processed/geolocation/rues_total_merged.csv", encoding="utf-8-sig")
 
 
 if __name__ == "__main__":

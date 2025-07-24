@@ -8,7 +8,16 @@ from innpulsa.settings import DATA_DIR
 
 
 def configure_logger(name: str) -> logging.Logger:
-    """Get a configured logger instance."""
+    """
+    Get a configured logger instance.
+
+    Args:
+        name: The name of the logger
+
+    Returns:
+        logging.Logger: The configured logger instance
+
+    """
     logger = logging.getLogger(name)
 
     if not logger.handlers:  # avoid duplicate handlers

@@ -2,7 +2,7 @@
 
 import asyncio
 import urllib.parse
-from typing import Dict, Optional, Tuple
+from typing import Any
 import aiohttp
 from tqdm.asyncio import tqdm
 from pathlib import Path
@@ -24,12 +24,25 @@ class GoogleGeocoder:
         self._session = None
 
     async def __aenter__(self):
-        """set up async context."""
+        """Set up async context.
+
+        Returns:
+            self
+
+        """
         self._session = aiohttp.ClientSession()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        """clean up async context."""
+        """
+        Clean up async context.
+
+        Args:
+            exc_type: exception type
+            exc_val: exception value
+            exc_tb: exception traceback
+
+        """
         if self._session:
             await self._session.close()
 
@@ -39,8 +52,9 @@ class GoogleGeocoder:
 
     async def geocode(
         self, address: str, country: str, area: str, city: str
-    ) -> Tuple[Optional[str], Optional[Tuple[float, float]]]:
-        """geocode a single address with components.
+    ) -> tuple[str | None, tuple[float, float] | None]:
+        """
+        Geocode a single address with components.
 
         Args:
             address: street address
@@ -50,6 +64,10 @@ class GoogleGeocoder:
 
         Returns:
             tuple of (formatted_address, (latitude, longitude)) or None if geocoding failed
+
+        Raises:
+            RuntimeError: if the HTTP session is not initialised
+
         """
         if not all([address, country, area, city]):
             return None, None
@@ -73,6 +91,9 @@ class GoogleGeocoder:
 
         await self._wait_for_rate_limit()
 
+        if self._session is None:
+            raise RuntimeError
+
         try:
             async with self._session.get(url) as response:
                 data = await response.json()
@@ -85,8 +106,8 @@ class GoogleGeocoder:
                 location = data["results"][0]["geometry"]["location"]
                 return gmaps_address, (location["lat"], location["lng"])
 
-        except Exception as e:  # pylint: disable=W0718
-            logger.error("geocoding request failed: %s", str(e))
+        except (aiohttp.ClientError, KeyError):
+            logger.exception("geocoding request failed.")
             return None, None
         finally:
             # Release the rate limiter regardless of success/failure
@@ -94,13 +115,14 @@ class GoogleGeocoder:
 
     async def geocode_batch(
         self,
-        addresses: Dict[str, Dict[str, str]],
+        addresses: dict[str, dict[str, str]],
         max_retries: int = 3,
         *,
-        checkpoint_path: Optional[Path] = None,
+        checkpoint_path: Path | None = None,
         save_every: int = 500,
-    ) -> Dict[str, Tuple[Optional[float], Optional[float]]]:
-        """geocode a batch of addresses with retries.
+    ) -> dict[str, dict[str, Any]]:
+        """
+        Geocode a batch of addresses with retries.
 
         Args:
             addresses: dictionary mapping IDs to address components
@@ -110,84 +132,85 @@ class GoogleGeocoder:
 
         Returns:
             dictionary mapping IDs to (lat, lng) tuples
+
         """
-        results: Dict[str, Dict[str, Optional[Tuple[float, float]]]] = {}
+        results: dict[str, dict[str, Any]] = {}
         processed = 0  # counter for periodic saves
         retry_delay = 1.0  # initial retry delay in seconds
 
-        async def _geocode_with_retry(id_: str, addr: Dict[str, str]):
-            """Worker coroutine that geocodes one address and returns its result."""
-            retries = 0
-            while retries <= max_retries:
-                try:
-                    gmaps_address, coords = await self.geocode(
-                        addr["formatted_address"],
-                        addr["country"],
-                        addr["area"],
-                        addr["city"],
-                    )
-                    return id_, {
-                        "gmaps_address": gmaps_address,
-                        "coords": coords,
-                    }
-                except Exception as e:  # pylint: disable=W0718
-                    retries += 1
-                    if retries <= max_retries:
-                        delay = retry_delay * (
-                            2 ** (retries - 1)
-                        )  # exponential backoff
-                        logger.warning(
-                            "attempt %d failed for %s: %s, retrying in %.1fs",
-                            retries,
-                            id_,
-                            str(e),
-                            delay,
-                        )
-                        await asyncio.sleep(delay)
-                    else:
-                        logger.error("all retries failed for %s: %s", id_, str(e))
-                        return id_, {
-                            "gmaps_address": None,
-                            "coords": None,
-                        }
-
         # process all addresses with progress bar
         tasks = [
-            _geocode_with_retry(id_, addr)
+            self._geocode_with_retry(id_, addr, max_retries, retry_delay)
             for id_, addr in addresses.items()
             if all(v is not None for v in addr.values())
         ]
 
-        for coro in tqdm(
-            asyncio.as_completed(tasks),
-            total=len(tasks),
-            desc="Geocoding addresses",
+        for processed, coro in enumerate(
+            tqdm(
+                asyncio.as_completed(tasks),
+                total=len(tasks),
+                desc="Geocoding addresses",
+            ),
+            start=1,
         ):
             id_, res = await coro
             results[id_] = res
-            processed += 1
 
             if checkpoint_path and processed % save_every == 0:
                 try:
-                    checkpoint_path.write_text(
-                        json.dumps(results, indent=2, ensure_ascii=False)
-                    )
+                    checkpoint_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
                     logger.debug(
                         "checkpoint saved after %d addresses -> %s",
                         processed,
                         checkpoint_path,
                     )
-                except Exception as save_exc:  # pylint: disable=broad-except
+                except OSError as save_exc:
                     logger.warning("failed to write checkpoint: %s", save_exc)
 
         # final checkpoint
         if checkpoint_path:
             try:
-                checkpoint_path.write_text(
-                    json.dumps(results, indent=2, ensure_ascii=False)
-                )
+                checkpoint_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
                 logger.info("final checkpoint saved to %s", checkpoint_path)
-            except Exception as save_exc:  # pylint: disable=broad-except
+            except OSError as save_exc:
                 logger.warning("failed to write final checkpoint: %s", save_exc)
 
         return results
+
+    async def _geocode_with_retry(
+        self, id_: str, addr: dict[str, str], max_retries: int, retry_delay: float
+    ) -> tuple[str, dict[str, Any]]:
+        """
+        Geocode an address with retries.
+
+        Args:
+            id_: identifier for the address
+            addr: dictionary containing address components
+            max_retries: maximum number of retry attempts
+            retry_delay: delay between retries in seconds
+
+        Returns:
+            tuple of (identifier, dictionary containing geocoding result)
+
+        """
+        retries = 0
+        while retries <= max_retries:
+            try:
+                gmaps_address, coords = await self.geocode(
+                    addr["formatted_address"],
+                    addr["country"],
+                    addr["area"],
+                    addr["city"],
+                )
+            except (aiohttp.ClientError, KeyError):
+                retries += 1
+                if retries <= max_retries:
+                    delay = retry_delay * (2 ** (retries - 1))
+                    logger.warning("attempt %d failed for %s, retrying in %.1fs", retries, id_, delay)
+                    await asyncio.sleep(delay)
+                else:
+                    logger.exception("all retries failed for %s: ", id_)
+                    return id_, {"gmaps_address": None, "coords": None}
+            else:
+                return id_, {"gmaps_address": gmaps_address, "coords": coords}
+        return id_, {"gmaps_address": None, "coords": None}

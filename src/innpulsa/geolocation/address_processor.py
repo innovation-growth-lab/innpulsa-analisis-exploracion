@@ -31,9 +31,7 @@ class AddressProcessor:
             raise ValueError(error_msg)
 
         self.dataset = dataset
-        self.output_dir = (
-            Path(DATA_DIR) / f"processed/geolocation/{dataset}_addresses"
-        )
+        self.output_dir = Path(DATA_DIR) / f"processed/geolocation/{dataset}_addresses"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         logger.debug(
             "initialised processor for %s with output directory: %s",
@@ -62,9 +60,7 @@ class AddressProcessor:
         )
 
     @staticmethod
-    def _enrich_zasca_with_ciiu(
-        zasca: pd.DataFrame, rues: pd.DataFrame
-    ) -> pd.DataFrame:
+    def _enrich_zasca_with_ciiu(zasca: pd.DataFrame, rues: pd.DataFrame) -> pd.DataFrame:
         """
         Enrich ZASCA data with CIIU codes by merging with RUES on NIT.
 
@@ -82,16 +78,12 @@ class AddressProcessor:
             zasca["nit"] = zasca["nit"].astype(str).str.strip()
         rues_nit_ciiu = rues[["nit", "ciiu_principal"]].copy()
         rues_nit_ciiu["nit"] = rues_nit_ciiu["nit"].astype(str).str.strip()
-        rues_nit_ciiu["ciiu_principal"] = (
-            rues_nit_ciiu["ciiu_principal"].astype(str).str.strip()
-        )
+        rues_nit_ciiu["ciiu_principal"] = rues_nit_ciiu["ciiu_principal"].astype(str).str.strip()
 
         return zasca.merge(rues_nit_ciiu, on="nit", how="left")
 
     @staticmethod
-    def _get_top_ciius_per_city(
-        zasca_with_ciiu: pd.DataFrame, top_n: int = 5
-    ) -> pd.DataFrame:
+    def _get_top_ciius_per_city(zasca_with_ciiu: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
         """
         Identify top N CIIU codes per city in ZASCA data.
 
@@ -118,12 +110,10 @@ class AddressProcessor:
             top_n,
             city_ciiu_counts["city_norm"].nunique(),
         )
-        return city_ciiu_counts[["city_norm", "ciiu_principal"]]
+        return pd.DataFrame(city_ciiu_counts[["city_norm", "ciiu_principal"]])
 
     @staticmethod
-    def _filter_rues_by_city_ciius(
-        rues: pd.DataFrame, city_ciius: pd.DataFrame
-    ) -> pd.DataFrame:
+    def _filter_rues_by_city_ciius(rues: pd.DataFrame, city_ciius: pd.DataFrame) -> pd.DataFrame:
         """
         Filter RUES to only include records matching city-specific CIIU codes.
 
@@ -147,8 +137,7 @@ class AddressProcessor:
         # Filter RUES records that match valid city-CIIU combinations
         rues_filtered = rues[
             rues.apply(
-                lambda row: (row["city_norm"], row["ciiu_principal"])
-                in valid_combinations,
+                lambda row: (row["city_norm"], row["ciiu_principal"]) in valid_combinations,
                 axis=1,
             )
         ].copy()
@@ -158,12 +147,10 @@ class AddressProcessor:
             len(rues),
             len(rues_filtered),
         )
-        return rues_filtered
+        return pd.DataFrame(rues_filtered)
 
     @staticmethod
-    def _sample_with_city_weights(
-        filtered_rues: pd.DataFrame, zasca: pd.DataFrame, target_n: int
-    ) -> pd.DataFrame:
+    def _sample_with_city_weights(filtered_rues: pd.DataFrame, zasca: pd.DataFrame, target_n: int) -> pd.DataFrame:
         """
         Sample RUES records with city-based weighting.
 
@@ -189,9 +176,7 @@ class AddressProcessor:
         rues_city_counts = filtered_rues.groupby("city_norm").size()
         city_weights = (zasca_city_counts / rues_city_counts).fillna(1e-6)
 
-        filtered_rues["weight"] = (
-            filtered_rues["city_norm"].map(city_weights).fillna(1e-6)
-        )
+        filtered_rues["weight"] = filtered_rues["city_norm"].map(city_weights).fillna(1e-6)
 
         sampled_rues = filtered_rues.sample(
             n=target_n,
@@ -230,8 +215,8 @@ class AddressProcessor:
         """
         # Normalize city names for consistent matching
         zasca.loc[zasca["city"] == "Donmatías", "city"] = "Don Matías"
-        zasca["city_norm"] = self._normalise_city(zasca["city"])
-        rues["city_norm"] = self._normalise_city(rues["city"])
+        zasca["city_norm"] = self._normalise_city(pd.Series(zasca["city"]))
+        rues["city_norm"] = self._normalise_city(pd.Series(rues["city"]))
         rues["ciiu_principal"] = rues["ciiu_principal"].astype(str).str.strip()
 
         # Step 1: Enrich ZASCA with CIIU data from RUES
@@ -244,9 +229,7 @@ class AddressProcessor:
         filtered_rues = self._filter_rues_by_city_ciius(rues, city_ciius)
 
         # Step 4: Sample with city-based weighting
-        sampled_rues = self._sample_with_city_weights(
-            filtered_rues, zasca, target_n
-        )
+        sampled_rues = self._sample_with_city_weights(filtered_rues, zasca, target_n)
 
         return sampled_rues.drop(columns=["city_norm"], errors="ignore")
 
@@ -265,12 +248,7 @@ class AddressProcessor:
         # Create full_address column
         df = df.copy()
         df["full_address"] = (
-            df["dirección_comercial"].fillna("")
-            + ", "
-            + df["city"].fillna("")
-            + ", "
-            + df["state"].fillna("")
-            + ", CO"
+            df["dirección_comercial"].fillna("") + ", " + df["city"].fillna("") + ", " + df["state"].fillna("") + ", CO"
         )
 
         # LLM helper expects identifier column named numberid_emp1
@@ -325,9 +303,7 @@ class AddressProcessor:
         # Apply dataset-specific preprocessing
         if self.dataset == "rues":
             if filter_against_zasca is not None:
-                df = self.filter_rues_against_zasca(
-                    df, filter_against_zasca, target_n
-                )
+                df = self.filter_rues_against_zasca(df, filter_against_zasca, target_n)
             df = self.build_rues_address(df)
         elif self.dataset == "zasca":
             df = self.build_zasca_address(df)
@@ -398,21 +374,15 @@ class AddressProcessor:
                         "city": result.get("city"),
                     })
             except json.JSONDecodeError as e:
-                error_msg = (
-                    f"JSON parsing error in batch file {batch_file}: {e}"
-                )
+                error_msg = f"JSON parsing error in batch file {batch_file}: {e}"
                 logger.exception(error_msg)
                 continue
             except KeyError as e:
-                error_msg = (
-                    f"missing required field {e} in batch file {batch_file}"
-                )
+                error_msg = f"missing required field {e} in batch file {batch_file}"
                 logger.exception(error_msg)
                 continue
             except Exception as e:  # pylint: disable=W0718
-                error_msg = (
-                    f"unexpected error processing batch file {batch_file}: {e}"
-                )
+                error_msg = f"unexpected error processing batch file {batch_file}: {e}"
                 logger.exception(error_msg)
                 continue
 
@@ -433,10 +403,7 @@ class AddressProcessor:
             Path to the saved file
 
         """
-        output_file = (
-            Path(DATA_DIR)
-            / f"processed/geolocation/{self.dataset}_addresses.csv"
-        )
+        output_file = Path(DATA_DIR) / f"processed/geolocation/{self.dataset}_addresses.csv"
         output_file.parent.mkdir(parents=True, exist_ok=True)
         results_df.to_csv(output_file, index=False, encoding="utf-8-sig")
         logger.info("saved %d records to %s", len(results_df), output_file)

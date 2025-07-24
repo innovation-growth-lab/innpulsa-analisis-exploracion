@@ -11,8 +11,23 @@ from innpulsa.geolocation.prompts import SYSTEM_PROMPT_ZASCA
 
 
 async def main() -> int:
-    """Process ZASCA addresses and save results."""
-    logger = configure_logger("geolocation")
+    """
+    Process ZASCA addresses and save results.
+
+    This script will:
+    - Load the ZASCA data
+    - Process the ZASCA data
+    - Save the processed ZASCA data
+
+    Args:
+        target_n: The number of addresses to process.
+        clear_existing: Whether to clear existing batch files.
+
+    Returns:
+        int: 0 if successful, 1 otherwise.
+
+    """
+    logger = configure_logger("zasca_llm")
 
     # Initialise shared processor for ZASCA dataset
     processor = AddressProcessor("zasca")
@@ -53,6 +68,8 @@ async def main() -> int:
         len(results_df),
         output_path,
     )
+
+    return 0
 
 
 if __name__ == "__main__":

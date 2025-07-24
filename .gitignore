@@ -1,5 +1,5 @@
 .envrc
-
+.innpulsa
 jairo/
 .vscode/
 .cursor/
@@ -10,7 +10,7 @@ requirements.txt
 *.log
 bin/
 
-# But allow the path to geolocation/
+# no data but geolocation data/
 data/processed/rues_total.csv
 data/00_geih/*
 data/01_raw/*
@@ -21,3 +21,6 @@ data/processed/geolocation/zasca_addresses/
 
 # anything with checkpoint
 *checkpoint*
+
+# innpulsa_raw (data from shared drive)
+innpulsa_raw/

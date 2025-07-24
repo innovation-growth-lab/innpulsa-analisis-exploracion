@@ -4,11 +4,10 @@ ZASCA data loading module.
 This module handles the loading of ZASCA data from multiple cohorts
 """
 
-import os
 import logging
 from pathlib import Path
 import pandas as pd
-from ..settings import RAW_DATA_DIR, DATA_DIR
+from innpulsa.settings import RAW_DATA_DIR, DATA_DIR
 from .generic import load_stata, load_csv
 
 # define relevant columns to keep from ZASCA data
@@ -36,22 +35,23 @@ logger = logging.getLogger("innpulsa.loaders.zasca")
 
 
 def load_zasca() -> pd.DataFrame:
-    """Read and process ZASCA data from multiple cohort files.
-
-    Args:
-        save_processed: Whether to save the processed data to CSV
+    """
+    Read and process ZASCA data from multiple cohort files.
 
     Returns:
-        pd.DataFrame: Combined and processed ZASCA data.
-    """
+        DataFrame
 
+    Raises:
+        ValueError: if no cohort files could be read
+
+    """
     # define cohort files
     cohort_files = {
-        "CUCC2": os.path.join(RAW_DATA_DIR, "Zasca_CUC_C2.dta"),
-        "MEDC1": os.path.join(RAW_DATA_DIR, "Zasca_MED_C1.dta"),
-        "MEDC2": os.path.join(RAW_DATA_DIR, "Zasca_MED_C2.dta"),
-        "BMAC1": os.path.join(RAW_DATA_DIR, "Zasca_BMA_C1.dta"),
-        "CUCC1": os.path.join(RAW_DATA_DIR, "Zasca_CUC_C1.dta"),
+        "CUCC2": Path(RAW_DATA_DIR) / "Zasca_CUC_C2.dta",
+        "MEDC1": Path(RAW_DATA_DIR) / "Zasca_MED_C1.dta",
+        "MEDC2": Path(RAW_DATA_DIR) / "Zasca_MED_C2.dta",
+        "BMAC1": Path(RAW_DATA_DIR) / "Zasca_BMA_C1.dta",
+        "CUCC1": Path(RAW_DATA_DIR) / "Zasca_CUC_C1.dta",
     }
 
     # read and combine all cohorts
@@ -66,19 +66,17 @@ def load_zasca() -> pd.DataFrame:
 
             df["cohort"] = cohort_name  # add cohort identifier
             dfs.append(df)
-        except Exception as e:  # pylint: disable=W0718
-            logger.error("failed to read %s: %s", file_path, str(e))
+        except Exception:
+            logger.exception("failed to read %s", file_path)
             continue
 
     if not dfs:
         logger.error("no cohort files were successfully read")
-        raise ValueError("Failed to read any ZASCA cohort files")
+        raise ValueError
 
     # combine all cohorts and process
     logger.debug("combining and processing cohort data")
-    result = pd.concat(dfs, ignore_index=True)
-
-    return result
+    return pd.concat(dfs, ignore_index=True)
 
 
 def load_processed_zasca() -> pd.DataFrame:
@@ -86,6 +84,7 @@ def load_processed_zasca() -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: Processed ZASCA data from saved CSV file.
+
     """
     zasca_path = Path(DATA_DIR) / "processed/zasca_total.csv"
     logger.info("reading processed ZASCA data from %s", zasca_path)
@@ -94,11 +93,12 @@ def load_processed_zasca() -> pd.DataFrame:
         df = load_csv(zasca_path, encoding="utf-8-sig")
 
         logger.debug("successfully read %d ZASCA records", len(df))
-        return df
 
-    except Exception as e:
-        logger.error("failed to read processed ZASCA data: %s", str(e))
+    except Exception:
+        logger.exception("failed to read processed ZASCA data")
         raise
+    else:
+        return df
 
 
 def select_relevant_columns(df: pd.DataFrame, available_columns: list) -> pd.DataFrame:
@@ -110,27 +110,26 @@ def select_relevant_columns(df: pd.DataFrame, available_columns: list) -> pd.Dat
 
     Returns:
         DataFrame with only relevant columns
+
     """
     # find intersection of relevant columns and available columns
-    columns_to_keep = [
-        col for col in ZASCA_RELEVANT_COLUMNS if col in available_columns
-    ]
+    columns_to_keep = [col for col in ZASCA_RELEVANT_COLUMNS if col in available_columns]
 
     if not columns_to_keep:
         logger.warning("no relevant columns found in dataframe")
         return df
 
-    logger.debug(
-        "keeping %d relevant columns: %s", len(columns_to_keep), columns_to_keep
-    )
+    logger.debug("keeping %d relevant columns: %s", len(columns_to_keep), columns_to_keep)
     result = df[columns_to_keep].copy()
     return result if isinstance(result, pd.DataFrame) else result.to_frame()
+
 
 def load_zasca_addresses() -> pd.DataFrame:
     """Read the pre-processed ZASCA addresses from CSV.
 
     Returns:
         pd.DataFrame: Processed ZASCA addresses from saved CSV file.
+
     """
     zasca_addresses_path = Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv"
     logger.info("reading ZASCA addresses from %s", zasca_addresses_path)

@@ -1,7 +1,5 @@
-"""
-Innpulsa Analysis Package
-"""
+"""Innpulsa Analysis Package."""
 
-from .settings import DATA_DIR
- 
-__all__ = ['DATA_DIR'] 
+from innpulsa.settings import DATA_DIR
+
+__all__ = ["DATA_DIR"]

@@ -1,12 +1,13 @@
-"""this script preprocesses locations using LLMs."""
+"""Preprocess locations using LLMs."""
 
 import asyncio
 import json
 import os
+import secrets
 from pathlib import Path
-import random
 from functools import wraps
-from typing import Dict, List, Any, TypeVar, Callable, Awaitable
+from typing import Any, TypeVar
+from collections.abc import Callable, Awaitable
 import pandas as pd
 from google import genai
 
@@ -27,7 +28,8 @@ def with_exponential_backoff(
     exponential_base: float = 2.0,
     jitter: float = 0.1,
 ) -> Callable[[Callable[..., Awaitable[T]]], Callable[..., Awaitable[T]]]:
-    """Decorator that implements exponential backoff for async functions.
+    """
+    Implement exponential backoff for async functions.
 
     Args:
         max_retries: Maximum number of retries before giving up
@@ -37,6 +39,7 @@ def with_exponential_backoff(
 
     Returns:
         Decorated function with retry logic
+
     """
 
     def decorator(func: Callable[..., Awaitable[T]]) -> Callable[..., Awaitable[T]]:
@@ -48,7 +51,7 @@ def with_exponential_backoff(
             for retry in range(max_retries):
                 try:
                     return await func(*args, **kwargs)
-                except Exception as e:  # pylint: disable=W0718
+                except Exception as e:  # noqa: BLE001
                     last_exception = e
                     if retry < max_retries - 1:  # Don't log on last attempt
                         logger.warning(
@@ -58,8 +61,9 @@ def with_exponential_backoff(
                             str(e),
                             delay,
                         )
-                        # Add jitter to prevent thundering herd
-                        jitter_delay = delay * (1 + random.uniform(-jitter, jitter))
+                        # Add jitter to prevent thundering herd problem
+                        jitter_value = secrets.SystemRandom().uniform(-jitter, jitter)
+                        jitter_delay = delay * (1 + jitter_value)
                         await asyncio.sleep(jitter_delay)
                         delay *= exponential_base
                     continue
@@ -70,21 +74,25 @@ def with_exponential_backoff(
                 max_retries,
                 str(last_exception),
             )
-            raise last_exception
+            if last_exception is not None:
+                raise last_exception
+            raise RuntimeError
 
         return wrapper
 
     return decorator
 
 
-def format_addresses_for_prompt(addresses: Dict[str, str]) -> str:
-    """format addresses dictionary into a JSON string for the prompt.
+def format_addresses_for_prompt(addresses: dict[str, str]) -> str:
+    """
+    Format addresses dictionary into a JSON string for the prompt.
 
     Args:
         addresses: dictionary mapping address IDs to address strings
 
     Returns:
         JSON string representation of the addresses dictionary
+
     """
     # Convert Python dict to JSON string with proper formatting
     return json.dumps(addresses, indent=2, ensure_ascii=False)
@@ -98,6 +106,7 @@ def clean_json_response(response_text: str) -> str:
 
     Returns:
         Cleaned JSON string
+
     """
     # Remove any markdown code block markers
     text = response_text.replace("```json", "").replace("```", "")
@@ -108,8 +117,8 @@ def clean_json_response(response_text: str) -> str:
     # Validate it's parseable JSON (will raise JSONDecodeError if not)
     try:
         json.loads(text)  # validation only
-    except json.JSONDecodeError as e:
-        logger.error("invalid JSON response: %s", str(e))
+    except json.JSONDecodeError:
+        logger.exception("invalid JSON response.")
         return ""
 
     return text
@@ -125,22 +134,24 @@ async def make_llm_request(formatted_addresses: str, prompt: str) -> str:
 
     Returns:
         Response text from LLM
+
     """
     response = await asyncio.to_thread(
         client.models.generate_content,
         model="gemini-2.0-flash",
         contents=prompt.format(batch_addresses=formatted_addresses),
     )
-    return response.text
+    return response.text or ""
 
 
 async def process_address_batch(
-    addresses: Dict[str, str],
+    addresses: dict[str, str],
     rate_limiter: RateLimiter,
     batch_id: int,
     prompt: str,
-) -> Dict[str, Any]:
-    """process a batch of addresses using the LLM with rate limiting.
+) -> dict[str, Any]:
+    """
+    Process a batch of addresses using the LLM with rate limiting.
 
     Args:
         addresses: dictionary mapping address IDs to address strings
@@ -150,6 +161,7 @@ async def process_address_batch(
 
     Returns:
         dictionary containing batch results
+
     """
     try:
         logger.debug("processing batch %d with %d addresses", batch_id, len(addresses))
@@ -171,11 +183,8 @@ async def process_address_batch(
             "processed_count": len(addresses),
         }
 
-        logger.debug("successfully processed batch %d", batch_id)
-        return result
-
-    except Exception as e:  # pylint: disable=W0718
-        logger.error("failed to process batch %d: %s", batch_id, str(e))
+    except Exception as e:
+        logger.exception("failed to process batch %d", batch_id)
         return {
             "batch_id": batch_id,
             "status": "error",
@@ -183,14 +192,16 @@ async def process_address_batch(
             "error": str(e),
             "processed_count": 0,
         }
+    else:
+        logger.debug("successfully processed batch %d", batch_id)
+        return result
     finally:
         await rate_limiter.release()
 
 
-def create_address_batches(
-    df: pd.DataFrame, batch_size: int = 25
-) -> List[Dict[str, str]]:
-    """create batches of addresses from DataFrame.
+def create_address_batches(df: pd.DataFrame, batch_size: int = 25) -> list[dict[str, str]]:
+    """
+    Create batches of addresses from DataFrame.
 
     Args:
         df: DataFrame containing address data with UniqueID and full_address columns
@@ -198,6 +209,7 @@ def create_address_batches(
 
     Returns:
         list of address batches
+
     """
     batches = []
 
@@ -207,7 +219,7 @@ def create_address_batches(
         return []
 
     # create dictionary mapping UniqueID to address
-    addresses = dict(zip(df["numberid_emp1"], df["full_address"].fillna("")))
+    addresses = dict(zip(df["numberid_emp1"], df["full_address"].fillna(""), strict=True))
 
     # filter out empty addresses
     addresses = {id_: addr for id_, addr in addresses.items() if addr.strip()}
@@ -223,12 +235,14 @@ def create_address_batches(
     return batches
 
 
-def save_batch_result(result: Dict[str, Any], output_dir: Path) -> None:
-    """save batch result to JSON file.
+def save_batch_result(result: dict[str, Any], output_dir: Path) -> None:
+    """
+    Save batch result to JSON file.
 
     Args:
         result: batch processing result
         output_dir: directory to save results
+
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -238,7 +252,7 @@ def save_batch_result(result: Dict[str, Any], output_dir: Path) -> None:
 
     output_path = output_dir / filename
 
-    with open(output_path, "w", encoding="utf-8") as f:
+    with Path(output_path).open("w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 
     logger.debug("saved batch %d result to %s", batch_id, output_path)
@@ -250,8 +264,9 @@ async def normalise_addresses_using_llm(
     prompt: str,
     batch_size: int = 10,
     calls_per_second: float = 0.125,  # 7.5 requests per minute
-) -> Dict[str, int]:
-    """process all ZASCA addresses using LLM with rate limiting.
+) -> dict[str, int]:
+    """
+    Process all ZASCA addresses using LLM with rate limiting.
 
     Args:
         df: DataFrame containing ZASCA data with full_address column
@@ -262,7 +277,8 @@ async def normalise_addresses_using_llm(
         prompt: The prompt to use for the LLM request
 
     Returns:
-        summary statistics
+        dictionary containing summary statistics
+
     """
     logger.info(
         "starting address processing with batch_size=%d, calls_per_second=%.2f",
@@ -281,10 +297,7 @@ async def normalise_addresses_using_llm(
     rate_limiter = RateLimiter(calls_per_second)
 
     # process all batches concurrently
-    tasks = [
-        process_address_batch(batch, rate_limiter, i, prompt)
-        for i, batch in enumerate(batches)
-    ]
+    tasks = [process_address_batch(batch, rate_limiter, i, prompt) for i, batch in enumerate(batches)]
 
     logger.info("processing %d batches...", len(tasks))
     results = await asyncio.gather(*tasks)
@@ -316,13 +329,21 @@ async def normalise_addresses_using_llm(
 
 
 # legacy function for backwards compatibility
-async def process_addresses(
-    addresses: dict[str, str], prompt: str
-) -> dict[str, dict[str, str]]:
-    """process a batch of addresses using the LLM."""
+def process_addresses(addresses: dict[str, str], prompt: str) -> str:
+    """
+    Process a batch of addresses using the LLM.
+
+    Args:
+        addresses: dictionary mapping address IDs to address strings
+        prompt: The prompt to use for the LLM request
+
+    Returns:
+        dictionary mapping address IDs to geocoding results
+
+    """
     formatted_addresses = format_addresses_for_prompt(addresses)
-    response = await client.models.generate_content(
+    response = client.models.generate_content(
         model="gemini-2.0-flash",
         contents=prompt.format(addresses=formatted_addresses),
     )
-    return response.text
+    return response.text or ""

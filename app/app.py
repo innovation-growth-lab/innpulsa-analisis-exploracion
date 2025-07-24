@@ -10,7 +10,13 @@ import streamlit as st
 import pydeck as pdk
 import pandas as pd
 
-from constants import CITY_CONFIG, CLR_ZASCA_DARK, CLR_ZASCA_LIGHT, CLR_RUES, MAPBOX_API_KEY
+from constants import (
+    CITY_CONFIG,
+    CLR_ZASCA_DARK,
+    CLR_ZASCA_LIGHT,
+    CLR_RUES,
+    MAPBOX_API_KEY,
+)
 from data_loader import load_data, _normalise_str
 from plots import (
     build_density_plot,
@@ -131,7 +137,10 @@ def main() -> None:
                             "<b>CIIU:</b> {ciiu_principal}<br/>"
                             "<b>Dirección:</b> {gmaps_address}</div>"
                         ),
-                        "style": {"backgroundColor": "#fefefe", "color": "#333333"},
+                        "style": {
+                            "backgroundColor": "#fefefe",
+                            "color": "#333333",
+                        },
                     },
                 )
 
@@ -153,7 +162,9 @@ def main() -> None:
                         .str.contains(city_norm)
                     ]
                     if codes_filter is not None:
-                        city_df = city_df[city_df["ciiu_principal"].isin(codes_filter)]
+                        city_df = city_df[
+                            city_df["ciiu_principal"].isin(codes_filter)
+                        ]
 
                     fig = build_density_plot(
                         city_df,
@@ -183,7 +194,9 @@ def main() -> None:
                         ["sales2022s", "emp_total"],
                     )
                     st.plotly_chart(
-                        fig2, use_container_width=True, key=f"plot_zasca_{city}"
+                        fig2,
+                        use_container_width=True,
+                        key=f"plot_zasca_{city}",
                     )
 
     with strategies_tab:
@@ -405,7 +418,9 @@ def main() -> None:
         """
         )
 
-        st.subheader("Refinamiento de la Estrategia DiD Escalonada (Opción B.1)")
+        st.subheader(
+            "Refinamiento de la Estrategia DiD Escalonada (Opción B.1)"
+        )
         st.markdown(
             """
         Dado que los modelos tradicionales de DiD con efectos fijos bidireccionales (TWFE) pueden producir estimaciones sesgadas en diseños escalonados, es importante utilizar estimadores modernos y robustos.

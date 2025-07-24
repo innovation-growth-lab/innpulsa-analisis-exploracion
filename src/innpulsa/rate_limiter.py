@@ -9,7 +9,7 @@ It centralises the logic that previously lived in both `geolocation.llm` and
 from __future__ import annotations
 
 import asyncio
-from typing import Final
+from typing import Final, Self
 
 from innpulsa.logging import configure_logger
 
@@ -17,7 +17,15 @@ logger = configure_logger("innpulsa.utils.rate_limiter")
 
 
 class RateLimiter:  # pylint: disable=too-few-public-methods
-    """Simple *async* rate-limiter based on a minimum interval between calls.
+    """
+    Simple *async* rate-limiter based on a minimum interval between calls.
+
+    Args:
+        calls_per_second: The maximum number of calls per second
+
+    Returns:
+        RateLimiter: The rate-limiter instance
+
     """
 
     _GLOBAL_ACTIVE: Final[str] = "active_batches"
@@ -26,7 +34,7 @@ class RateLimiter:  # pylint: disable=too-few-public-methods
 
     def __init__(self, calls_per_second: float = 0.25):
         if calls_per_second <= 0:
-            raise ValueError("`calls_per_second` must be > 0")
+            raise ValueError
 
         self.min_interval = 1.0 / calls_per_second
         self.last_call_time = 0.0
@@ -46,12 +54,25 @@ class RateLimiter:  # pylint: disable=too-few-public-methods
             self.last_call_time = asyncio.get_event_loop().time()
 
     async def release(self) -> None:
-        """Mark the completion of an operation previously protected by `acquire`."""
+        """
+        Mark the completion of an operation previously protected by `acquire`.
+
+        Args:
+            self: The rate-limiter instance
+
+        """
         async with self._lock:
             RateLimiter.active_batches -= 1
             logger.debug("active batches: %d", RateLimiter.active_batches)
 
-    async def __aenter__(self) -> "RateLimiter":  # pylint: disable=unused-argument
+    async def __aenter__(self) -> Self:
+        """
+        Acquire the rate-limiter lock.
+
+        Returns:
+            RateLimiter: The rate-limiter instance
+
+        """
         await self.acquire()
         return self
 

@@ -8,8 +8,8 @@ cleaning, and aggregating data from multiple sources.
 import logging
 from pathlib import Path
 import pandas as pd
-from ..settings import RAW_DATA_DIR
-from ..loaders import load_stata
+from innpulsa.settings import RAW_DATA_DIR
+from innpulsa.loaders import load_stata
 
 
 logger = logging.getLogger("innpulsa.processing.emicron")
@@ -20,6 +20,7 @@ def read_emicron() -> pd.DataFrame:
 
     Returns:
         pd.DataFrame: Processed and aggregated EMICRON data with standardised columns.
+
     """
     emicron_dir = Path(RAW_DATA_DIR) / "EMICRON/2023"
     logger.info("reading EMICRON data from %s", emicron_dir)
@@ -66,9 +67,7 @@ def read_emicron() -> pd.DataFrame:
 
     # create unique identifier
     df["numberid_emp1"] = (
-        df["DIRECTORIO"].astype(str)
-        + df["SECUENCIA_P"].astype(str)
-        + df["SECUENCIA_ENCUESTA"].astype(str)
+        df["DIRECTORIO"].astype(str) + df["SECUENCIA_P"].astype(str) + df["SECUENCIA_ENCUESTA"].astype(str)
     )
 
     # define aggregation groups and variables
@@ -82,17 +81,24 @@ def read_emicron() -> pd.DataFrame:
     sum_df = df.groupby(group_cols)[sum_vars].sum()
 
     # calculate weighted means
-    def weighted_mean(group):
-        """Calculate weighted mean for specified columns."""
+    def weighted_mean(group: pd.DataFrame) -> pd.Series:
+        """
+        Calculate weighted mean for specified columns.
+
+        Args:
+            group: DataFrame containing the group data
+
+        Returns:
+            pd.Series: Weighted mean for the specified columns
+
+        """
         weights = group[weight_col]
-        return pd.Series(
-            {col: (group[col] * weights).sum() / weights.sum() for col in mean_vars}
-        )
+        return pd.Series({col: (group[col] * weights).sum() / weights.sum() for col in mean_vars})
 
     mean_df = df.groupby(group_cols).apply(weighted_mean)
 
     # combine aggregated data
-    result = pd.concat([sum_df, mean_df], axis=1).reset_index()
+    result = pd.concat([pd.DataFrame(sum_df), pd.DataFrame(mean_df)], axis=1).reset_index()
 
     # convert all possible columns to numeric
     for col in result.columns:

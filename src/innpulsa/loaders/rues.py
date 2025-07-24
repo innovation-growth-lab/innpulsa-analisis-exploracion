@@ -7,15 +7,23 @@ This module handles the loading of RUES (Registro Único Empresarial y Social) d
 from pathlib import Path
 import logging
 import pandas as pd
-from ..settings import RAW_DATA_DIR, DATA_DIR
+from innpulsa.settings import RAW_DATA_DIR, DATA_DIR
 from .generic import load_stata, load_csv
 
 logger = logging.getLogger("innpulsa.loaders.rues")
 
 
 def load_rues() -> pd.DataFrame:
-    """Read and combine RUES data from multiple years (raw)."""
+    """
+    Read and combine RUES data from multiple years (raw).
 
+    Returns:
+        DataFrame
+
+    Raises:
+        ValueError: if no RUES files could be read
+
+    """
     rues_dir = Path(RAW_DATA_DIR) / "Rues"
 
     files = {
@@ -30,18 +38,23 @@ def load_rues() -> pd.DataFrame:
             df = load_stata(file_path, pyreadstat=False)
             df["source_year"] = year
             dfs.append(df)
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.error("failed to read %s: %s", file_path, exc)
+        except Exception:
+            logger.exception("failed to read %s", file_path)
 
     if not dfs:
-        raise ValueError("No RUES files could be read.")
+        raise ValueError
 
     return pd.concat(dfs, ignore_index=True)
 
 
 def load_processed_rues() -> pd.DataFrame:
-    """Load the saved combined RUES CSV."""
+    """
+    Load the saved combined RUES CSV.
 
+    Returns:
+        DataFrame
+
+    """
     path = Path(DATA_DIR) / "processed/rues_total.csv"
     logger.info("reading processed RUES data from %s", path)
     return load_csv(path, encoding="utf-8-sig", low_memory=False)

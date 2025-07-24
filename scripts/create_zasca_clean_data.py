@@ -6,16 +6,23 @@ and saves a unified CSV file for later use.
 """
 
 from pathlib import Path
-from innpulsa.settings import DATA_DIR
-from innpulsa.processing import process_zasca
+
 from innpulsa.loaders import load_zasca, load_rues
 from innpulsa.logging import configure_logger
+from innpulsa.processing import process_zasca
+from innpulsa.settings import DATA_DIR
 
 logger = configure_logger("innpulsa.scripts.create_zasca_clean_data")
 
 
 def main():
-    """Main function to process ZASCA data."""
+    """
+    Run function to process ZASCA data.
+
+    This script reads data from multiple ZASCA cohort files, processes them,
+    and saves a unified CSV file for later use.
+
+    """
     logger.info("starting ZASCA data processing")
 
     # (re)process ZASCA data
