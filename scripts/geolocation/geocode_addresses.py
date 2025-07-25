@@ -21,7 +21,7 @@ from innpulsa.geolocation.geocoding import GoogleGeocoder
 from innpulsa.logging import configure_logger
 from innpulsa.loaders import load_csv
 
-TIMEOUT = 10
+TIMEOUT = 60
 
 
 async def google_geocode(dataset: str) -> int:
