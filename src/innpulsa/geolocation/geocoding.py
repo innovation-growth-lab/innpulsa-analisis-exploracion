@@ -4,7 +4,7 @@ import asyncio
 import urllib.parse
 from typing import Any
 import aiohttp
-from tqdm.asyncio import tqdm
+from tqdm import tqdm
 from pathlib import Path
 import json
 
@@ -119,7 +119,8 @@ class GoogleGeocoder:
         max_retries: int = 3,
         *,
         checkpoint_path: Path | None = None,
-        save_every: int = 500,
+        save_every: int = 50,
+        max_concurrent: int = 10,  # You can tune this value
     ) -> dict[str, dict[str, Any]]:
         """
         Geocode a batch of addresses with retries.
@@ -129,45 +130,44 @@ class GoogleGeocoder:
             max_retries: maximum number of retry attempts
             checkpoint_path: path to save checkpoint
             save_every: number of addresses between checkpoints
+            max_concurrent: maximum number of concurrent requests
 
         Returns:
             dictionary mapping IDs to (lat, lng) tuples
 
         """
         results: dict[str, dict[str, Any]] = {}
-        processed = 0  # counter for periodic saves
-        retry_delay = 1.0  # initial retry delay in seconds
+        retry_delay = 1.0
 
-        # process all addresses with progress bar
-        tasks = [
-            self._geocode_with_retry(id_, addr, max_retries, retry_delay)
-            for id_, addr in addresses.items()
-            if all(v is not None for v in addr.values())
-        ]
+        semaphore = asyncio.Semaphore(max_concurrent)
+        total = len(addresses)
 
-        for processed, coro in enumerate(
-            tqdm(
-                asyncio.as_completed(tasks),
-                total=len(tasks),
-                desc="Geocoding addresses",
-            ),
-            start=1,
-        ):
-            id_, res = await coro
-            results[id_] = res
+        async def sem_task(id_, addr):
+            async with semaphore:
+                return await self._geocode_with_retry(id_, addr, max_retries, retry_delay)
 
-            if checkpoint_path and processed % save_every == 0:
-                try:
-                    checkpoint_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
-                    logger.debug(
-                        "checkpoint saved after %d addresses -> %s",
-                        processed,
-                        checkpoint_path,
-                    )
-                except OSError as save_exc:
-                    logger.warning("failed to write checkpoint: %s", save_exc)
+        # Prepare all tasks, but only max_concurrent will run at once
+        filtered_items = [(id_, addr) for id_, addr in addresses.items() if all(v is not None for v in addr.values())]
+        tasks = [asyncio.create_task(sem_task(id_, addr)) for id_, addr in filtered_items]
 
-        # final checkpoint
+        with tqdm(total=total, desc="Geocoding addresses") as pbar:
+            for processed, task in enumerate(asyncio.as_completed(tasks), start=1):
+                id_, res = await task
+                results[id_] = res
+                pbar.n = processed
+                pbar.refresh()
+                if checkpoint_path and processed % save_every == 0:
+                    try:
+                        checkpoint_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
+                        logger.debug(
+                            "checkpoint saved after %d addresses -> %s",
+                            processed,
+                            checkpoint_path,
+                        )
+                    except OSError as save_exc:
+                        logger.warning("failed to write checkpoint: %s", save_exc)
+
+        # Final checkpoint
         if checkpoint_path:
             try:
                 checkpoint_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
@@ -202,7 +202,7 @@ class GoogleGeocoder:
                     addr["area"],
                     addr["city"],
                 )
-            except (aiohttp.ClientError, KeyError):
+            except (aiohttp.ClientError, KeyError, TimeoutError):
                 retries += 1
                 if retries <= max_retries:
                     delay = retry_delay * (2 ** (retries - 1))
