@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from typing import List
-
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from constants import CIIU_DESCRIPTIONS
+
+# Layout constants
+SUBPLOT_COLS = 2
+SUBPLOT_ROWS_SINGLE = 1
+SUBPLOT_ROWS_MULTI = 2
 
 # Metric labels (shared across plots)
 METRIC_LABELS = {
@@ -22,24 +25,53 @@ METRIC_LABELS = {
 
 # Helpers
 def to_log(series: pd.Series) -> pd.Series:
-    """Convert the series to log10, omitting values ≤ 0 or null."""
+    """
+    Convert the series to log10, omitting values ≤ 0 or null.
+
+    Args:
+        series: The series to convert
+
+    Returns:
+        pd.Series: The converted series
+
+    """
     num = pd.to_numeric(series, errors="coerce")
-    num = num[num > 0]
-    return np.log10(num)
+    num = num[num > 0]  # type: ignore[reportAssignment]
+    return np.log10(num)  # type: ignore[reportArgumentType]
 
 
 def format_ciiu(ciiu_code: int) -> str:
-    """Return label 'code – description' when available."""
+    """
+    Return label 'code + description' when available.
+
+    Args:
+        ciiu_code: The CIIU code
+
+    Returns:
+        str: The formatted CIIU code
+
+    """
     description = CIIU_DESCRIPTIONS.get(int(ciiu_code), "")
-    return f"{ciiu_code} – {description}" if description else str(ciiu_code)
+    return f"{ciiu_code} - {description}" if description else str(ciiu_code)
 
 
 # Density plots
-def build_density_plot(df: pd.DataFrame, variables: List[str]) -> go.Figure:
-    """Create density subplots for *variables* separated by in_rues (True/False)."""
+def build_density_plot(df: pd.DataFrame, variables: list[str]) -> go.Figure:
+    """
+    Create density subplots for *variables* separated by in_rues (True/False).
 
+    Args:
+        df: The DataFrame to create the density plots for
+        variables: The variables to create the density plots for
+
+    Returns:
+        go.Figure: The density plots
+
+    """
     # decide layout
-    rows, cols = (1, 2) if len(variables) == 2 else (2, 2)
+    rows, cols = (
+        (SUBPLOT_ROWS_SINGLE, SUBPLOT_COLS) if len(variables) == SUBPLOT_COLS else (SUBPLOT_ROWS_MULTI, SUBPLOT_COLS)
+    )
 
     fig = make_subplots(
         rows=rows,
@@ -53,7 +85,7 @@ def build_density_plot(df: pd.DataFrame, variables: List[str]) -> go.Figure:
     for i, var in enumerate(variables):
         r = i // cols + 1
         c = i % cols + 1
-        for flag, colour, legend in zip([True, False], colours, legend_names):
+        for flag, colour, legend in zip([True, False], colours, legend_names, strict=True):
             values = to_log(df.loc[df["in_rues"] == flag, var]).dropna()
             if values.empty:
                 continue
@@ -71,14 +103,25 @@ def build_density_plot(df: pd.DataFrame, variables: List[str]) -> go.Figure:
             )
 
     fig.update_xaxes(title_text="log₁₀(valor)", type="linear")
-    fig.update_layout(height=400, margin=dict(t=40, r=10, l=10, b=10))
+    fig.update_layout(height=400, margin={"t": 40, "r": 10, "l": 10, "b": 10})
     return fig
 
 
-def build_density_plot_zasca(df: pd.DataFrame, variables: List[str]) -> go.Figure:
-    """Density plots for ZASCA companies: in_rues True vs False (greens)."""
+def build_density_plot_zasca(df: pd.DataFrame, variables: list[str]) -> go.Figure:
+    """
+    Density plots for ZASCA companies: in_rues True vs False (greens).
 
-    rows, cols = (1, 2) if len(variables) == 2 else (2, 2)
+    Args:
+        df: The DataFrame to create the density plots for
+        variables: The variables to create the density plots for
+
+    Returns:
+        go.Figure: The density plots
+
+    """
+    rows, cols = (
+        (SUBPLOT_ROWS_SINGLE, SUBPLOT_COLS) if len(variables) == SUBPLOT_COLS else (SUBPLOT_ROWS_MULTI, SUBPLOT_COLS)
+    )
 
     fig = make_subplots(
         rows=rows,
@@ -92,7 +135,7 @@ def build_density_plot_zasca(df: pd.DataFrame, variables: List[str]) -> go.Figur
     for i, var in enumerate(variables):
         r = i // cols + 1
         c = i % cols + 1
-        for flag, colour, legend in zip([True, False], colours, legend_names):
+        for flag, colour, legend in zip([True, False], colours, legend_names, strict=True):
             values = to_log(df.loc[df["in_rues"] == flag, var]).dropna()
             if values.empty:
                 continue
@@ -110,5 +153,5 @@ def build_density_plot_zasca(df: pd.DataFrame, variables: List[str]) -> go.Figur
             )
 
     fig.update_xaxes(title_text="log₁₀(valor)", type="linear")
-    fig.update_layout(height=300, margin=dict(t=40, r=10, l=10, b=10))
+    fig.update_layout(height=300, margin={"t": 40, "r": 10, "l": 10, "b": 10})
     return fig

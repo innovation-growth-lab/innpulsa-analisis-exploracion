@@ -4,7 +4,17 @@ from constants import CLR_RUES
 
 
 def make_layer(df: pd.DataFrame, colour: list[int] | None = None) -> pdk.Layer:
-    """Return a ScatterplotLayer for *df* with the given RGBA colour."""
+    """
+    Return a ScatterplotLayer for *df* with the given RGBA colour.
+
+    Args:
+        df: The DataFrame to create the layer for
+        colour: The colour to use for the layer
+
+    Returns:
+        pdk.Layer: The ScatterplotLayer
+
+    """
     if colour is None:
         colour = CLR_RUES
 

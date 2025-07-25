@@ -1,5 +1,7 @@
-from __future__ import annotations
+"""Data loader for the application."""
 
+from __future__ import annotations
+import unicodedata
 import pandas as pd
 
 from constants import (
@@ -11,34 +13,32 @@ from constants import (
 )
 
 
-def _normalise_str(s: str) -> str:
-    """Return lowercase ASCII-only version of *s* (remove accents)."""
-    import unicodedata
+def normalise_str(s: str) -> str:
+    """
+    Return lowercase ASCII-only version of *s* (remove accents).
 
+    Args:
+        s: The string to normalise
+
+    Returns:
+        str: The normalised string
+
+    """
     return (
-        unicodedata.normalize("NFKD", s)
-        .encode("ascii", "ignore")
-        .decode("ascii")
-        .lower()
-        if isinstance(s, str)
-        else ""
+        unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii").lower() if isinstance(s, str) else ""
     )
 
 
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Load, merge and clean the data used by the application.
-
-    Returns
-    -------
-    rues_filtered : DataFrame
-    top_3_ciiu_principal : DataFrame
-    zasca_coords : DataFrame
-    rues_coords : DataFrame
     """
+    Load, merge and clean the data used by the application.
 
-    zasca_addresses = pd.read_csv(
-        ZASCA_ADDRESSES_PATH, encoding="utf-8-sig", index_col=0
-    )
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+            rues_filtered, top_3_ciiu_principal, zasca_coords, rues_coords
+
+    """
+    zasca_addresses = pd.read_csv(ZASCA_ADDRESSES_PATH, encoding="utf-8-sig", index_col=0)
     zasca_coords = pd.read_csv(ZASCA_COORDS_PATH, encoding="utf-8-sig", index_col=0)
     rues_coords = pd.read_csv(RUES_COORDS_PATH, encoding="utf-8-sig", index_col=0)
     rues_filtered = pd.read_csv(RUES_FILTERED_PATH, encoding="utf-8-sig", index_col=0)
@@ -54,10 +54,7 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]
 
     # identify the top 3 ciiu_principal per city among in_rues == True
     top_3_ciiu_principal = (
-        rues_filtered[
-            rues_filtered["in_rues"]
-            & rues_filtered["city"].isin(["Medellin", "Cucuta", "Bucaramanga"])
-        ]
+        rues_filtered[rues_filtered["in_rues"] & rues_filtered["city"].isin(["Medellin", "Cucuta", "Bucaramanga"])]
         .groupby(["ciiu_principal", "city"])  # type: ignore[arg-type]
         .size()
         .reset_index(name="count")
@@ -85,9 +82,7 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]
         zasca_coords = zasca_coords.rename(columns={"city": "city_zasca"})
 
     # fix city names
-    zasca_coords["city_zasca"] = zasca_coords["city_zasca"].replace(
-        "San José de Cúcuta", "Cúcuta"
-    )
+    zasca_coords["city_zasca"] = zasca_coords["city_zasca"].replace("San José de Cúcuta", "Cúcuta")
 
     # merge rues info into ZASCA coords
     zasca_coords = zasca_coords.merge(rues_filtered, on="nit", how="left")
@@ -101,13 +96,16 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]
     )
 
     # ensure proper dtypes
-    zasca_coords.drop_duplicates(subset=["id"], inplace=True)
-    zasca_coords["in_rues"] = zasca_coords["in_rues"].fillna(False)
+    zasca_coords = zasca_coords.drop_duplicates(subset=["id"])
+    zasca_coords["in_rues"] = zasca_coords["in_rues"].fillna(value=False)
 
     # convert lat / lon to numeric and drop NAs
-    for df in (zasca_coords, rues_coords):
-        df["latitude"] = pd.to_numeric(df["latitude"], errors="coerce")
-        df["longitude"] = pd.to_numeric(df["longitude"], errors="coerce")
-        df.dropna(subset=["latitude", "longitude"], inplace=True)
+    zasca_coords["latitude"] = pd.to_numeric(zasca_coords["latitude"], errors="coerce")
+    zasca_coords["longitude"] = pd.to_numeric(zasca_coords["longitude"], errors="coerce")
+    zasca_coords = zasca_coords.dropna(subset=["latitude", "longitude"])
+
+    rues_coords["latitude"] = pd.to_numeric(rues_coords["latitude"], errors="coerce")
+    rues_coords["longitude"] = pd.to_numeric(rues_coords["longitude"], errors="coerce")
+    rues_coords = rues_coords.dropna(subset=["latitude", "longitude"])
 
     return rues_filtered, top_3_ciiu_principal, zasca_coords, rues_coords
