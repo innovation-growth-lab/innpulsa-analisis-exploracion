@@ -29,12 +29,15 @@ ZASCA_RELEVANT_COLUMNS = [
     "weeklysales",
     "emp_total",
     "capital",
+    "cohort",
+    "centro",
+    "Cierre"
 ]
 
 logger = logging.getLogger("innpulsa.loaders.zasca")
 
 
-def load_zasca() -> pd.DataFrame:
+def load_five_centers_zasca() -> pd.DataFrame:
     """
     Read and process ZASCA data from multiple cohort files.
 
@@ -77,6 +80,20 @@ def load_zasca() -> pd.DataFrame:
     # combine all cohorts and process
     logger.debug("combining and processing cohort data")
     return pd.concat(dfs, ignore_index=True)
+
+
+def load_closed_zascas() -> pd.DataFrame:
+    """Read the closed ZASCA data from CSV.
+
+    Returns:
+        pd.DataFrame: Closed ZASCA data from saved CSV file.
+
+    """
+    closed_zascas = pd.read_csv(Path(RAW_DATA_DIR) / "Zascas_cerrados.csv", encoding="utf-8-sig")
+    closed_zascas = select_relevant_columns(closed_zascas, closed_zascas.columns.tolist())
+    closed_zascas["cohort"] = closed_zascas["cohort"].astype(str) + closed_zascas["centro"].astype(str)
+
+    return closed_zascas
 
 
 def load_processed_zasca() -> pd.DataFrame:
