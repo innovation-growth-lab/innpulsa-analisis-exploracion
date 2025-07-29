@@ -504,6 +504,21 @@ def render_technical_considerations():
     )
 
 
+def render_analysis_report():
+    """Render the panel analysis HTML report."""
+    # Try to read the HTML file
+    html_file_path = "analysis/01_iv/panel_analysis.html"
+    with Path(html_file_path).open(mode="r", encoding="utf-8") as f:
+        html_content = f.read()
+
+    st.header("Análisis Panel - Diagnóstico de Variables ZASCA")
+    st.markdown("Reporte completo del análisis de variables instrumentales y diferencias-en-diferencias.")
+
+    # Display the HTML content
+    components.html(html_content, height=1600, scrolling=True)
+
+
+
 def render_strategies_tab():
     """Render the strategies comparison tab.
 
