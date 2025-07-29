@@ -544,12 +544,14 @@ def main() -> None:
     st.title("Cohortes ZASCA y RUES")
 
     data = get_data()
-    maps_tab, strategies_tab = st.tabs(["Mapas", "Estrategias"])
+    maps_tab, strategies_tab, analysis_tab = st.tabs(["Mapas", "Estrategias", "Análisis"])
 
     with maps_tab:
         render_map_tabs(data)
     with strategies_tab:
         render_strategies_tab()
+    with analysis_tab:
+        render_analysis_report()
 
 
 if __name__ == "__main__":
