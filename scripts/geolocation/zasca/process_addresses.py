@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
-"""Process ZASCA addresses with LLM and save results."""
+"""Process ZASCA addresses with LLM and save results.
 
+Usage:
+    python scripts/geolocation/zasca/process_addresses.py
+"""
+
+import argparse
 import asyncio
 import sys
 
@@ -19,18 +24,14 @@ async def main() -> int:
     - Process the ZASCA data
     - Save the processed ZASCA data
 
-    Args:
-        target_n: The number of addresses to process.
-        clear_existing: Whether to clear existing batch files.
-
     Returns:
         int: 0 if successful, 1 otherwise.
 
     """
     logger = configure_logger("zasca_llm")
 
-    # Initialise shared processor for ZASCA dataset
-    processor = AddressProcessor("zasca")
+    # Initialise shared processor for ZASCA dataset with subdirectory
+    processor = AddressProcessor("zasca", subdirectory=None)
 
     # Load input data
     logger.info("loading ZASCA data")
@@ -73,4 +74,7 @@ async def main() -> int:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Process ZASCA addresses with LLM and save results.")
+
+    args = parser.parse_args()
     sys.exit(asyncio.run(main()))
