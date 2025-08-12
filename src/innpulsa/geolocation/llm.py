@@ -135,12 +135,13 @@ async def make_llm_request(formatted_addresses: str, prompt: str) -> str:
     Returns:
         Response text from LLM
 
+    Raises:
+        ValueError: If GEMINI_ROTATING_KEYS environment variable is not set
+
     """
-    rotating_keys = [
-        "AIzaSyAK9OHK_Ss3UxNkDDCSHsR0WGoqmm2XJW0",  # bse 2
-        "AIzaSyDGZDGsHF5G0pF68d4vZG9-BS-SHRkIPAE",
-        "AIzaSyAd1Hl7S1a7z7q79Q9SS7ePHfL3RILOJJo",  # jose soto
-    ]
+    rotating_keys = os.getenv("GEMINI_ROTATING_KEYS", "").split(",")
+    if not rotating_keys:
+        raise ValueError
 
     # randomly select a key from the rotating keys
     client = genai.Client(api_key=secrets.choice(rotating_keys))
