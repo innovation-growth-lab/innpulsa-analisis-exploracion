@@ -16,11 +16,12 @@ logger = configure_logger("innpulsa.geolocation.address_processor")
 class AddressProcessor:
     """Handles address processing for both RUES and ZASCA datasets."""
 
-    def __init__(self, dataset: str):
+    def __init__(self, dataset: str, subdirectory: str | None = None):
         """Initialise processor for a specific dataset.
 
         Args:
             dataset: Either 'rues' or 'zasca'
+            subdirectory: Optional subdirectory name for dataset variants (e.g., 'five_centers', 'closed')
 
         Raises:
             ValueError: If dataset is not 'rues' or 'zasca'.
@@ -31,7 +32,14 @@ class AddressProcessor:
             raise ValueError(error_msg)
 
         self.dataset = dataset
-        self.output_dir = Path(DATA_DIR) / f"processed/geolocation/{dataset}_addresses"
+        self.subdirectory = subdirectory
+
+        # Create output directory path with optional subdirectory
+        if subdirectory:
+            self.output_dir = Path(DATA_DIR) / f"02_processed/geolocation/{subdirectory}/{dataset}_addresses"
+        else:
+            self.output_dir = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_addresses"
+
         self.output_dir.mkdir(parents=True, exist_ok=True)
         logger.debug(
             "initialised processor for %s with output directory: %s",
@@ -403,7 +411,12 @@ class AddressProcessor:
             Path to the saved file
 
         """
-        output_file = Path(DATA_DIR) / f"processed/geolocation/{self.dataset}_addresses.csv"
+        # Create output path with optional subdirectory
+        if self.subdirectory:
+            output_file = Path(DATA_DIR) / f"02_processed/geolocation/{self.subdirectory}/{self.dataset}_addresses.csv"
+        else:
+            output_file = Path(DATA_DIR) / f"02_processed/geolocation/{self.dataset}_addresses.csv"
+
         output_file.parent.mkdir(parents=True, exist_ok=True)
         results_df.to_csv(output_file, index=False, encoding="utf-8-sig")
         logger.info("saved %d records to %s", len(results_df), output_file)

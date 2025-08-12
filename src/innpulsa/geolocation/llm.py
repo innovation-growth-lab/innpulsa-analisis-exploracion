@@ -136,9 +136,18 @@ async def make_llm_request(formatted_addresses: str, prompt: str) -> str:
         Response text from LLM
 
     """
+    rotating_keys = [
+        "AIzaSyAK9OHK_Ss3UxNkDDCSHsR0WGoqmm2XJW0",  # bse 2
+        "AIzaSyDGZDGsHF5G0pF68d4vZG9-BS-SHRkIPAE",
+        "AIzaSyAd1Hl7S1a7z7q79Q9SS7ePHfL3RILOJJo",  # jose soto
+    ]
+
+    # randomly select a key from the rotating keys
+    client = genai.Client(api_key=secrets.choice(rotating_keys))
+
     response = await asyncio.to_thread(
         client.models.generate_content,
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash-lite",
         contents=prompt.format(batch_addresses=formatted_addresses),
     )
     return response.text or ""
@@ -180,7 +189,7 @@ async def process_address_batch(
             "status": "success",
             "input_addresses": addresses,
             "response": cleaned_response,  # Store cleaned response
-            "processed_count": len(addresses),
+            "02_processed_count": len(addresses),
         }
 
     except Exception as e:
@@ -190,7 +199,7 @@ async def process_address_batch(
             "status": "error",
             "input_addresses": addresses,
             "error": str(e),
-            "processed_count": 0,
+            "02_processed_count": 0,
         }
     else:
         logger.debug("successfully processed batch %d", batch_id)

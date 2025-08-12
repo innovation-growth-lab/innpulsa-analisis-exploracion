@@ -55,6 +55,6 @@ def load_processed_rues() -> pd.DataFrame:
         DataFrame
 
     """
-    path = Path(DATA_DIR) / "processed/rues_total.csv"
+    path = Path(DATA_DIR) / "02_processed/rues_total.csv"
     logger.info("reading processed RUES data from %s", path)
     return load_csv(path, encoding="utf-8-sig", low_memory=False)

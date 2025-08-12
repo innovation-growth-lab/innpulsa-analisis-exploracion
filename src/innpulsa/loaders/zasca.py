@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 import pandas as pd
 from innpulsa.settings import RAW_DATA_DIR, DATA_DIR
-from .generic import load_stata, load_csv
+from .generic import load_csv
 
 # define relevant columns to keep from ZASCA data
 ZASCA_RELEVANT_COLUMNS = [
@@ -31,58 +31,13 @@ ZASCA_RELEVANT_COLUMNS = [
     "capital",
     "cohort",
     "centro",
-    "Cierre"
+    "Cierre",
 ]
 
 logger = logging.getLogger("innpulsa.loaders.zasca")
 
 
-def load_five_centers_zasca() -> pd.DataFrame:
-    """
-    Read and process ZASCA data from multiple cohort files.
-
-    Returns:
-        DataFrame
-
-    Raises:
-        ValueError: if no cohort files could be read
-
-    """
-    # define cohort files
-    cohort_files = {
-        "CUCC2": Path(RAW_DATA_DIR) / "Zasca_CUC_C2.dta",
-        "MEDC1": Path(RAW_DATA_DIR) / "Zasca_MED_C1.dta",
-        "MEDC2": Path(RAW_DATA_DIR) / "Zasca_MED_C2.dta",
-        "BMAC1": Path(RAW_DATA_DIR) / "Zasca_BMA_C1.dta",
-        "CUCC1": Path(RAW_DATA_DIR) / "Zasca_CUC_C1.dta",
-    }
-
-    # read and combine all cohorts
-    dfs = []
-    for cohort_name, file_path in cohort_files.items():
-        try:
-            logger.debug("reading cohort file: %s", file_path)
-            df = load_stata(file_path, encoding="utf-8")
-
-            # select only relevant columns before processing
-            df = select_relevant_columns(df, df.columns.tolist())
-
-            df["cohort"] = cohort_name  # add cohort identifier
-            dfs.append(df)
-        except Exception:
-            logger.exception("failed to read %s", file_path)
-            continue
-
-    if not dfs:
-        logger.error("no cohort files were successfully read")
-        raise ValueError
-
-    # combine all cohorts and process
-    logger.debug("combining and processing cohort data")
-    return pd.concat(dfs, ignore_index=True)
-
-
-def load_closed_zascas() -> pd.DataFrame:
+def load_zascas() -> pd.DataFrame:
     """Read the closed ZASCA data from CSV.
 
     Returns:
@@ -103,7 +58,7 @@ def load_processed_zasca() -> pd.DataFrame:
         pd.DataFrame: Processed ZASCA data from saved CSV file.
 
     """
-    zasca_path = Path(DATA_DIR) / "processed/zasca_total.csv"
+    zasca_path = Path(DATA_DIR) / "02_processed/zasca_total.csv"
     logger.info("reading processed ZASCA data from %s", zasca_path)
 
     try:
@@ -148,6 +103,7 @@ def load_zasca_addresses() -> pd.DataFrame:
         pd.DataFrame: Processed ZASCA addresses from saved CSV file.
 
     """
-    zasca_addresses_path = Path(DATA_DIR) / "processed/geolocation/zasca_addresses.csv"
+    zasca_addresses_path = Path(DATA_DIR) / "02_processed/geolocation/zasca_addresses.csv"
+
     logger.info("reading ZASCA addresses from %s", zasca_addresses_path)
     return load_csv(zasca_addresses_path, encoding="utf-8-sig")
