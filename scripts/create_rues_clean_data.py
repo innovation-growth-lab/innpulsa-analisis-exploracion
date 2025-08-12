@@ -1,4 +1,8 @@
-"""Script to process RUES data."""
+"""Script to process RUES data.
+
+Usage:
+    python scripts/create_rues_clean_data.py
+"""
 
 from pathlib import Path
 from innpulsa.settings import DATA_DIR
@@ -33,7 +37,7 @@ def main():
     rues_df = process_rues(rues_df, zip_df)
     logger.info("Dataset shape: %s", rues_df.shape)
 
-    output_dir = Path(DATA_DIR) / "processed"
+    output_dir = Path(DATA_DIR) / "02_processed"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "rues_total.csv"
 
