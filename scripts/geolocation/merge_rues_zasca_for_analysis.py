@@ -5,8 +5,7 @@ This script reads data from both RUES and ZASCA sources and performs an inner me
 based on business identifiers.
 
 Usage:
-    python analysis/create_merged_data.py --zasca_dataset five_centers
-    python analysis/create_merged_data.py --zasca_dataset closed
+    python scripts/geolocation/merge_rues_zasca_for_analysis.py
 """
 
 import argparse
