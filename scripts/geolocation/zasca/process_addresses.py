@@ -52,7 +52,7 @@ async def main() -> int:
     # Merge the in_rues column (ZASCA-specific post-processing)
     results_df["id"] = results_df["id"].astype(int)
     results_df = results_df.merge(
-        df[["numberid_emp1", "nit", "in_rues"]],
+        df[["numberid_emp1", "nit", "zasca_and_rues"]],
         left_on="id",
         right_on="numberid_emp1",
         how="inner",

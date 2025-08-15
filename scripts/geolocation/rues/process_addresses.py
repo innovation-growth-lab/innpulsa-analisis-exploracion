@@ -41,9 +41,7 @@ async def run_pipeline(target_n: int, *, clear_existing: bool = False) -> int:
     processor = AddressProcessor("rues")
 
     if clear_existing:
-        logger.info(
-            "Clearing existing batch files from %s", processor.output_dir
-        )
+        logger.info("Clearing existing batch files from %s", processor.output_dir)
         batch_files = list(processor.output_dir.glob("batch_*"))
         for batch_file in batch_files:
             batch_file.unlink()
@@ -96,7 +94,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--clear",
         action="store_true",
-        help="Delete all existing batch files before processing",
+        default=False,
+        help="Delete all existing batch files before processing (default: False)",
     )
     args = parser.parse_args()
     sys.exit(asyncio.run(run_pipeline(args.target, clear_existing=args.clear)))

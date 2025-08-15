@@ -118,7 +118,7 @@ class GoogleGeocoder:
         addresses: dict[str, dict[str, str]],
         max_retries: int = 3,
         *,
-        checkpoint_path: Path | None = None,
+        coordinates_json_path: Path | None = None,
         save_every: int = 50,
         max_concurrent: int = 10,  # You can tune this value
     ) -> dict[str, dict[str, Any]]:
@@ -128,7 +128,7 @@ class GoogleGeocoder:
         Args:
             addresses: dictionary mapping IDs to address components
             max_retries: maximum number of retry attempts
-            checkpoint_path: path to save checkpoint
+            coordinates_json_path: path to save checkpoint
             save_every: number of addresses between checkpoints
             max_concurrent: maximum number of concurrent requests
 
@@ -156,22 +156,22 @@ class GoogleGeocoder:
                 results[id_] = res
                 pbar.n = processed
                 pbar.refresh()
-                if checkpoint_path and processed % save_every == 0:
+                if coordinates_json_path and processed % save_every == 0:
                     try:
-                        checkpoint_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
+                        coordinates_json_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
                         logger.debug(
                             "checkpoint saved after %d addresses -> %s",
                             processed,
-                            checkpoint_path,
+                            coordinates_json_path,
                         )
                     except OSError as save_exc:
                         logger.warning("failed to write checkpoint: %s", save_exc)
 
         # Final checkpoint
-        if checkpoint_path:
+        if coordinates_json_path:
             try:
-                checkpoint_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
-                logger.info("final checkpoint saved to %s", checkpoint_path)
+                coordinates_json_path.write_text(json.dumps(results, indent=2, ensure_ascii=False))
+                logger.info("final checkpoint saved to %s", coordinates_json_path)
             except OSError as save_exc:
                 logger.warning("failed to write final checkpoint: %s", save_exc)
 

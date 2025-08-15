@@ -61,6 +61,9 @@ def process_rues(rues_df: pd.DataFrame, zip_df: pd.DataFrame) -> pd.DataFrame:
         # rename field15 and field21 to 'zipcode_comercial' and 'zipcode_fiscal'
         rues_df = rues_df.rename(columns={"field15": "zipcode_comercial", "field21": "zipcode_fiscal"})
 
+    # add "Bogotá" in zip_to_city with zip being 11001
+    zip_to_city["11001"] = "Bogotá"
+
     # zipcode-based city / region inference
     if "zipcode_comercial" in rues_df.columns and not zip_df.empty:
         rues_df["city"] = rues_df["zipcode_comercial"].map(zip_to_city.get)

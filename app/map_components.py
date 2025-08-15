@@ -3,7 +3,7 @@ import pandas as pd
 from constants import CLR_RUES
 
 
-def make_layer(df: pd.DataFrame, colour: list[int] | None = None) -> pdk.Layer:
+def make_layer(df: pd.DataFrame, colour: str | list[int] | None = None) -> pdk.Layer:
     """
     Return a ScatterplotLayer for *df* with the given RGBA colour.
 

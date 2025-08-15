@@ -1,5 +1,6 @@
 .envrc
 .innpulsa
+.lintr
 jairo/
 .vscode/
 .cursor/
@@ -9,15 +10,18 @@ requirements.txt
 *.lock
 *.log
 bin/
+logs/
+batch*
+*.png
 
 # no data but geolocation data/
-data/processed/rues_total.csv
+data/02_processed/rues_total.csv
 data/00_geih/*
 data/01_raw/*
-!data/processed/geolocation/
-!data/processed/geolocation/**
-data/processed/geolocation/rues_addresses/
-data/processed/geolocation/zasca_addresses/
+!data/02_processed/geolocation/
+!data/02_processed/geolocation/**
+data/02_processed/geolocation/rues_addresses/
+data/02_processed/geolocation/zasca_addresses/
 
 # anything with checkpoint
 *checkpoint*

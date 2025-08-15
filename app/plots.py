@@ -86,7 +86,7 @@ def build_density_plot(df: pd.DataFrame, variables: list[str]) -> go.Figure:
         r = i // cols + 1
         c = i % cols + 1
         for flag, colour, legend in zip([True, False], colours, legend_names, strict=True):
-            values = to_log(df.loc[df["in_rues"] == flag, var]).dropna()
+            values = to_log(df.loc[df["zasca_and_rues"] == flag, var]).dropna()
             if values.empty:
                 continue
             fig.add_trace(
@@ -136,7 +136,7 @@ def build_density_plot_zasca(df: pd.DataFrame, variables: list[str]) -> go.Figur
         r = i // cols + 1
         c = i % cols + 1
         for flag, colour, legend in zip([True, False], colours, legend_names, strict=True):
-            values = to_log(df.loc[df["in_rues"] == flag, var]).dropna()
+            values = to_log(df.loc[df["zasca_and_rues"] == flag, var]).dropna()
             if values.empty:
                 continue
             fig.add_trace(

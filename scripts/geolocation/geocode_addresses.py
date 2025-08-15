@@ -6,6 +6,7 @@ Usage:
 """
 
 import asyncio
+import json
 import os
 import sys
 import argparse
@@ -69,13 +70,20 @@ async def google_geocode(dataset: str) -> int:
     }
 
     # initialise geocoder and process addresses
-    checkpoint_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_coordinates_checkpoint.json"
+    coordinates_json_path = Path(DATA_DIR) / f"02_processed/geolocation/coordinates/{dataset}.json"
+
+    # discard addresses that are already geocoded
+    if coordinates_json_path.exists():
+        with Path.open(coordinates_json_path, encoding="utf-8") as f:
+            existing_results = json.load(f)
+        addresses = {k: v for k, v in addresses.items() if k not in existing_results}
+        logger.info("discarded %d addresses that are already geocoded", len(existing_results))
 
     async with GoogleGeocoder(api_key) as geocoder:
         logger.info("starting geocoding for %d addresses", len(addresses))
         results: dict[str, dict[str, Any]] = await geocoder.geocode_batch(
             addresses,
-            checkpoint_path=checkpoint_path,
+            coordinates_json_path=coordinates_json_path,
         )
 
     # convert results to dataframe
@@ -186,13 +194,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--service",
         choices=["google", "nominatim"],
-        default="nominatim",
+        default="google",
         help="Geocoding service to use (default: nominatim)",
     )
     parser.add_argument(
         "--dataset",
         choices=["zasca", "rues"],
-        default="zasca",
+        default="rues",
         help="Which dataset addresses to geocode (default: zasca)",
     )
 

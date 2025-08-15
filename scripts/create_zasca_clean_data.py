@@ -42,7 +42,7 @@ def main() -> None:
     # create boolean column indicating if ZASCA NIT appears in RUES
     logger.info("creating RUES match column")
     rues_nits = list(set(rues_df["numero_de_identificacion"].astype(str)))
-    zasca_df["in_rues"] = zasca_df["nit"].astype(str).isin(rues_nits)
+    zasca_df["zasca_and_rues"] = zasca_df["nit"].astype(str).isin(rues_nits)
 
     # save enhanced ZASCA dataset
     output_dir = Path(DATA_DIR) / "02_processed"

@@ -13,7 +13,8 @@ import pandas as pd
 from pathlib import Path
 
 from constants import (
-    CITY_CONFIG,
+    CENTRO_CONFIG,
+    CENTRO_ZASCA_CONFIG,
     CLR_ZASCA_DARK,
     CLR_ZASCA_LIGHT,
     CLR_RUES,
@@ -41,21 +42,21 @@ def get_data():
     return load_data()
 
 
-def prepare_city_filters(city, top_3_ciiu_principal):
-    """Prepare filter options and UI for a city tab.
+def prepare_centro_filters(centro, top_3_ciiu_principal):
+    """Prepare filter options and UI for a centro tab.
 
     Args:
-        city: The city to prepare filters for
-        top_3_ciiu_principal: The top 3 CIIU principal for the city
+        centro: The centro to prepare filters for
+        top_3_ciiu_principal: The top 3 CIIU principal for the centro
 
     Returns:
         tuple[list[int], bool, str]: The filter options and UI for the city tab
 
     """
-    citynorm = normalise_str(city)
+    centro_norm = normalise_str(centro)
 
     # Selector de actividad económica
-    ciiu_opts = top_3_ciiu_principal[top_3_ciiu_principal["city"].apply(normalise_str).str.contains(citynorm)][
+    ciiu_opts = top_3_ciiu_principal[top_3_ciiu_principal["centro"].apply(normalise_str).str.contains(centro_norm)][
         "ciiu_principal"
     ].tolist()
     ciiu_labels = [format_ciiu(c) for c in ciiu_opts]
@@ -67,14 +68,14 @@ def prepare_city_filters(city, top_3_ciiu_principal):
             "Actividad económica (CIIU)",
             select_options,
             index=0,
-            key=f"ciiu_sel_{city}",
+            key=f"ciiu_sel_{centro}",
         )
 
     with col_toggle:
         show_rues = st.checkbox(
             "Solo RUES",
             value=True,
-            key=f"show_rues_{city}",
+            key=f"show_rues_{centro}",
         )
 
     # Determine filter codes
@@ -86,58 +87,90 @@ def prepare_city_filters(city, top_3_ciiu_principal):
         label_to_code = {format_ciiu(c): c for c in ciiu_opts}
         codes_filter = [label_to_code[selected_label]]
 
-    return codes_filter, show_rues, citynorm
+    return codes_filter, show_rues
 
 
-def prepare_map_data(zasca_coords, rues_coords, codes_filter):
+def prepare_map_data(data_with_coords, codes_filter):
     """Prepare and filter map data based on selected filters.
 
     Args:
-        zasca_coords: The ZASCA coordinates
-        rues_coords: The RUES coordinates
+        data_with_coords: The data with coordinates
         codes_filter: The codes to filter the data by
 
     Returns:
         tuple[pd.DataFrame, pd.DataFrame]: The filtered data
 
     """
-    zasca_plot_df = zasca_coords.copy()
-    rues_plot_df = rues_coords.copy()
+    data_with_coords_plot = data_with_coords.copy()
 
-    # Apply activity filter
+    # filter data by codes_filter
     if codes_filter is not None:
-        zasca_plot_df = zasca_plot_df[zasca_plot_df["ciiu_principal"].isin(codes_filter)]
-        rues_plot_df = rues_plot_df[rues_plot_df["ciiu_principal"].isin(codes_filter)]
+        data_with_coords_plot = data_with_coords_plot[data_with_coords_plot["ciiu_principal"].isin(codes_filter)]
 
     # Colour column
-    zasca_plot_df["colour"] = zasca_plot_df["in_rues"].map(lambda m: CLR_ZASCA_DARK if m else CLR_ZASCA_LIGHT)
+    data_with_coords_plot["colour"] = data_with_coords_plot["zasca_and_rues"].map(
+        lambda m: CLR_ZASCA_DARK if m else CLR_ZASCA_LIGHT
+    )
 
-    return zasca_plot_df, rues_plot_df
+    return data_with_coords_plot
 
 
-def render_city_map(city, cfg, zasca_plot_df, rues_plot_df, show_rues):
-    """Render the map component for a city.
+def render_centro_map(centro, cfg, data_with_coords_plot_df, show_rues):
+    """Render the map component for a centro.
 
     Args:
-        city: The city to render the map for
-        cfg: The configuration for the city
-        zasca_plot_df: The ZASCA data
-        rues_plot_df: The RUES data
+        centro: The centro to render the map for
+        cfg: The configuration for the centro
+        data_with_coords_plot_df: The data with coordinates
         show_rues: Whether to show the RUES layer
 
     """
     # Layers
-    layer_zasca = pdk.Layer(
-        "ScatterplotLayer",
-        data=zasca_plot_df,
-        get_position="[longitude, latitude]",
-        get_fill_color="colour",
-        get_radius=60,
-        pickable=True,
+
+    # Define centro groupings for special cases
+    manrique_medellin = {"Manrique", "Medellín"}
+    suba_ciudad_bolivar = {"Suba", "Ciudad Bolivar"}
+
+    if centro in manrique_medellin:
+        centro_mask = data_with_coords_plot_df["centro"].isin(manrique_medellin)
+    elif centro in suba_ciudad_bolivar:
+        centro_mask = data_with_coords_plot_df["centro"].isin(suba_ciudad_bolivar)
+    else:
+        centro_mask = data_with_coords_plot_df["centro"] == centro
+
+    layer_zasca = make_layer(
+        data_with_coords_plot_df[(data_with_coords_plot_df["zasca"]) & (data_with_coords_plot_df["centro"] == centro)],
+        "colour",
     )
-    layer_rues = make_layer(pd.DataFrame(rues_plot_df), CLR_RUES)
+    layer_rues = make_layer(
+        data_with_coords_plot_df[(data_with_coords_plot_df["rues_only"]) & centro_mask],
+        CLR_RUES,
+    )
+
+    # Create ZASCA center marker layer
+    centro_coords = CENTRO_ZASCA_CONFIG.get(centro)
+    if centro_coords:
+        # Create a DataFrame with the center coordinates
+        center_df = pd.DataFrame({
+            "latitude": [centro_coords[0]],
+            "longitude": [centro_coords[1]],
+            "centro_name": [centro],
+        })
+
+        layer_centro = pdk.Layer(
+            "ScatterplotLayer",
+            data=center_df,
+            get_position="[longitude, latitude]",
+            get_fill_color=[255, 255, 0, 255],  # Yellow color
+            get_radius=200,  # Bigger radius for visibility
+            pickable=True,
+        )
+    else:
+        layer_centro = None
 
     layers = ([layer_rues] if show_rues else []) + [layer_zasca]
+    if layer_centro:
+        layers.append(layer_centro)
 
     deck = pdk.Deck(
         map_style="mapbox://styles/mapbox/light-v10",
@@ -152,10 +185,9 @@ def render_city_map(city, cfg, zasca_plot_df, rues_plot_df, show_rues):
         tooltip={  # type: ignore[reportArgumentType]
             "html": (
                 "<div style='font-family: Arial, sans-serif; font-size: 12px;'>"
-                "<b>ID:</b> {id}<br/>"
-                "<b>NIT:</b> {nit}<br/>"
+                "<b>UP ID (NIT o Cédula):</b> {up_id}<br/>"
                 "<b>CIIU:</b> {ciiu_principal}<br/>"
-                "<b>Dirección:</b> {gmaps_address}</div>"
+                "<b>Dirección:</b> {gmaps_address}<br/>"
             ),
             "style": {
                 "backgroundColor": "#fefefe",
@@ -164,21 +196,23 @@ def render_city_map(city, cfg, zasca_plot_df, rues_plot_df, show_rues):
         },
     )
 
-    st.subheader(city)
+    st.subheader(centro)
     st.pydeck_chart(deck, use_container_width=True, height=800)
 
 
-def render_city_plots(city, citynorm, rues_filtered, zasca_coords, codes_filter):
-    """Render the plot components for a city."""
+def render_centro_plots(centro, data_with_coords_plot_df, codes_filter):
+    """Render the plot components for a centro."""
     st.subheader("Detalles")
     st.caption("Unidades productivas en RUES (con presencia en ZASCA vs. sin ZASCA)")
 
-    city_df = rues_filtered[rues_filtered["city"].apply(normalise_str).str.contains(citynorm)]
+    centro_df = data_with_coords_plot_df[
+        (data_with_coords_plot_df["centro"] == centro) & (data_with_coords_plot_df["rues"])
+    ]
     if codes_filter is not None:
-        city_df = city_df[city_df["ciiu_principal"].isin(codes_filter)]
+        centro_df = centro_df[centro_df["ciiu_principal"].isin(codes_filter)]
 
     fig = build_density_plot(
-        pd.DataFrame(city_df),
+        centro_df,
         [
             "empleados",
             "activos_total",
@@ -186,47 +220,49 @@ def render_city_plots(city, citynorm, rues_filtered, zasca_coords, codes_filter)
             "ingresos_actividad_ordinaria",
         ],
     )
-    st.plotly_chart(fig, use_container_width=True, key=f"plot_rues_{city}")
+    st.plotly_chart(fig, use_container_width=True, key=f"plot_rues_{centro}")
 
     # ZASCA plot
     st.caption("Unidades productivas en ZASCA (presencia en RUES vs. sin RUES)")
 
-    zasca_city_df = zasca_coords[zasca_coords["city_zasca"].apply(normalise_str).str.contains(citynorm)]
+    zasca_centro_df = data_with_coords_plot_df[
+        (data_with_coords_plot_df["centro"] == centro) & (data_with_coords_plot_df["zasca"])
+    ]
     fig2 = build_density_plot_zasca(
-        pd.DataFrame(zasca_city_df),
+        zasca_centro_df,
         ["sales2022s", "emp_total"],
     )
     st.plotly_chart(
         fig2,
         use_container_width=True,
-        key=f"plot_zasca_{city}",
+        key=f"plot_zasca_{centro}",
     )
 
 
-def render_city_tab(city, cfg, data_tuple):
-    """Render a single city tab with map and plots."""
-    rues_filtered, top_3_ciiu_principal, zasca_coords, rues_coords = data_tuple
+def render_centro_tab(centro, cfg, data_tuple):
+    """Render a single centro tab with map and plots."""
+    data_with_coords, top_3_ciiu_principal = data_tuple
 
-    codes_filter, show_rues, citynorm = prepare_city_filters(city, top_3_ciiu_principal)
-    zasca_plot_df, rues_plot_df = prepare_map_data(zasca_coords, rues_coords, codes_filter)
+    codes_filter, show_rues = prepare_centro_filters(centro, top_3_ciiu_principal)
+    data_with_coords_plot_df = prepare_map_data(data_with_coords, codes_filter)
 
     col_map, col_side = st.columns([1, 1], gap="medium")
 
     with col_map:
-        render_city_map(city, cfg, zasca_plot_df, rues_plot_df, show_rues)
+        render_centro_map(centro, cfg, data_with_coords_plot_df, show_rues)
 
     with col_side:
-        render_city_plots(city, citynorm, rues_filtered, zasca_coords, codes_filter)
+        render_centro_plots(centro, data_with_coords_plot_df, codes_filter)
 
 
 def render_map_tabs(data_tuple):
-    """Render all city map tabs."""
-    city_tabs = st.tabs(list(CITY_CONFIG.keys()))
+    """Render all centro map tabs."""
+    centro_tabs = st.tabs(list(CENTRO_CONFIG.keys()))
 
-    for city, tab in zip(CITY_CONFIG.keys(), city_tabs, strict=True):
+    for centro, tab in zip(CENTRO_CONFIG.keys(), centro_tabs, strict=True):
         with tab:
-            cfg = CITY_CONFIG[city]
-            render_city_tab(city, cfg, data_tuple)
+            cfg = CENTRO_CONFIG[centro]
+            render_centro_tab(centro, cfg, data_tuple)
 
 
 def render_strategy_iv():
@@ -244,7 +280,7 @@ def render_strategy_iv():
             st.write("")  # Add some space above the image
             st.write("")  # Add some space above the image
 
-            st.image("data/iv.png", use_container_width=True)
+            st.image("data/00_images/iv.png", use_container_width=True)
         with col_content:
             st.subheader("Descripción y lógica")
             st.markdown(
@@ -309,7 +345,7 @@ def render_strategy_did_centers():
             st.write("")  # Add some space above the image
             st.write("")  # Add some space above the image
 
-            st.image("data/did1.png", use_container_width=True)
+            st.image("data/00_images/did1.png", use_container_width=True)
         with col_content:
             st.subheader("Descripción y lógica")
             st.markdown(
@@ -376,7 +412,7 @@ def render_strategy_did_cohorts():
             st.write("")  # Add some space above the image
             st.write("")  # Add some space above the image
 
-            st.image("data/did2.png", use_container_width=True)
+            st.image("data/00_images/did2.png", use_container_width=True)
         with col_content:
             st.subheader("Descripción y lógica")
             st.markdown(
@@ -484,7 +520,7 @@ def render_technical_considerations():
     - **Prueba de Placebo Temporal:** Verificar si la distancia a un centro ZASCA "futuro" (que aún no ha sido
      anunciado ni construido) predice resultados de las empresas en el **pasado**. Un efecto significativo aquí
      invalidaría el instrumento, ya que sugeriría que la distancia está capturando características preexistentes
-      de la zona y no el efecto del centro.
+     de la zona y no el efecto del centro.
     - **Análisis de Attrition (desgaste de la muestra):** Analizar si la distancia al centro predice la probabilidad
      de que una empresa salga de la muestra de evaluación (ej. cierre o imposibilidad de seguimiento). Si las
       empresas más lejanas son más propensas a desaparecer de los registros, esto podría introducir un sesgo de
@@ -518,7 +554,6 @@ def render_analysis_report():
 
     # Display the HTML content
     components.html(html_content, height=1600, scrolling=True)
-
 
 
 def render_strategies_tab():

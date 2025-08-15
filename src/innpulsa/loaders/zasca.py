@@ -32,6 +32,7 @@ ZASCA_RELEVANT_COLUMNS = [
     "cohort",
     "centro",
     "Cierre",
+    "yearcohort"
 ]
 
 logger = logging.getLogger("innpulsa.loaders.zasca")

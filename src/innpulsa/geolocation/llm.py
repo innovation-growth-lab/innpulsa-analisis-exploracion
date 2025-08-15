@@ -256,16 +256,37 @@ def save_batch_result(result: dict[str, Any], output_dir: Path) -> None:
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    batch_id = result["batch_id"]
+    # Check for existing batch files and determine the next batch ID
+    existing_batch_ids = []
+    for file_path in output_dir.glob("batch_*_*.json"):
+        # extract batch ID from filename (format: batch_XXXX_status.json)
+        filename = file_path.name
+        if filename.startswith("batch_") and "_" in filename:
+            batch_id_str = filename.split("_")[1]
+            batch_id = int(batch_id_str)
+            existing_batch_ids.append(batch_id)
+
+    # calculate the new batch ID
+    if existing_batch_ids:
+        max_existing_id = max(existing_batch_ids)
+        new_batch_id = result["batch_id"] + max_existing_id
+        logger.debug("found existing batch IDs: %s, setting new batch ID to %d", existing_batch_ids, new_batch_id)
+    else:
+        new_batch_id = result["batch_id"]
+        logger.debug("no existing batch files found, using original batch ID: %d", new_batch_id)
+
+    # Update the result with the new batch ID
+    result["batch_id"] = new_batch_id
+
     status = result["status"]
-    filename = f"batch_{batch_id:04d}_{status}.json"
+    filename = f"batch_{new_batch_id:04d}_{status}.json"
 
     output_path = output_dir / filename
 
     with Path(output_path).open("w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 
-    logger.debug("saved batch %d result to %s", batch_id, output_path)
+    logger.debug("saved batch %d result to %s", new_batch_id, output_path)
 
 
 async def normalise_addresses_using_llm(
