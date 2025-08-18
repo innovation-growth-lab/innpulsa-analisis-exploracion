@@ -73,7 +73,7 @@ def prepare_centro_filters(centro, top_3_ciiu_principal):
 
     with col_toggle:
         show_rues = st.checkbox(
-            "Solo RUES",
+            "Mostrar controles RUES",
             value=True,
             key=f"show_rues_{centro}",
         )
@@ -138,9 +138,17 @@ def render_centro_map(centro, cfg, data_with_coords_plot_df, show_rues):
     else:
         centro_mask = data_with_coords_plot_df["centro"] == centro
 
-    layer_zasca = make_layer(
-        data_with_coords_plot_df[(data_with_coords_plot_df["zasca"]) & (data_with_coords_plot_df["centro"] == centro)],
-        "colour",
+    layer_zasca_y_rues = make_layer(
+        data_with_coords_plot_df[
+            data_with_coords_plot_df["zasca_and_rues"] & (data_with_coords_plot_df["centro"] == centro)
+        ],
+        CLR_ZASCA_DARK,
+    )
+    layer_zasca_only = make_layer(
+        data_with_coords_plot_df[
+            data_with_coords_plot_df["zasca_only"] & (data_with_coords_plot_df["centro"] == centro)
+        ],
+        CLR_ZASCA_LIGHT,
     )
     layer_rues = make_layer(
         data_with_coords_plot_df[(data_with_coords_plot_df["rues_only"]) & centro_mask],
@@ -168,7 +176,7 @@ def render_centro_map(centro, cfg, data_with_coords_plot_df, show_rues):
     else:
         layer_centro = None
 
-    layers = ([layer_rues] if show_rues else []) + [layer_zasca]
+    layers = ([layer_rues] if show_rues else []) + [layer_zasca_only, layer_zasca_y_rues]
     if layer_centro:
         layers.append(layer_centro)
 
