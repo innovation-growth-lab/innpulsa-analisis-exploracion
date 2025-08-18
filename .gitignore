@@ -12,7 +12,6 @@ requirements.txt
 bin/
 logs/
 batch*
-*.png
 
 # no data but geolocation data/
 data/02_processed/rues_total.csv
