@@ -72,23 +72,35 @@ async def google_geocode(dataset: str) -> int:
     # initialise geocoder and process addresses
     coordinates_json_path = Path(DATA_DIR) / f"02_processed/geolocation/coordinates/{dataset}.json"
 
-    # discard addresses that are already geocoded
+    # load existing results if they exist
+    existing_results = {}
     if coordinates_json_path.exists():
         with Path.open(coordinates_json_path, encoding="utf-8") as f:
             existing_results = json.load(f)
-        addresses = {k: v for k, v in addresses.items() if k not in existing_results}
-        logger.info("discarded %d addresses that are already geocoded", len(existing_results))
+        logger.info("loaded %d existing geocoded addresses", len(existing_results))
 
-    async with GoogleGeocoder(api_key) as geocoder:
-        logger.info("starting geocoding for %d addresses", len(addresses))
-        results: dict[str, dict[str, Any]] = await geocoder.geocode_batch(
-            addresses,
-            coordinates_json_path=coordinates_json_path,
-        )
+    # filter out addresses that are already geocoded
+    new_addresses = {k: v for k, v in addresses.items() if k not in existing_results}
+    logger.info("skipping %d addresses that are already geocoded", len(addresses) - len(new_addresses))
 
-    # convert results to dataframe
+    # geocode only new addresses
+    results: dict[str, dict[str, Any]] = {}
+    if new_addresses:
+        async with GoogleGeocoder(api_key) as geocoder:
+            logger.info("starting geocoding for %d new addresses", len(new_addresses))
+            results = await geocoder.geocode_batch(
+                new_addresses,
+                coordinates_json_path=coordinates_json_path,
+            )
+    else:
+        logger.info("no new addresses to geocode")
+
+    # combine existing and new results
+    all_results = {**existing_results, **results}
+
+    # convert all results to dataframe
     output_records = []
-    for id_, result in results.items():
+    for id_, result in all_results.items():
         output_records.append({
             "id": id_,
             "gmaps_address": result["gmaps_address"],
@@ -96,7 +108,7 @@ async def google_geocode(dataset: str) -> int:
             "longitude": result["coords"][1] if result["coords"] else None,
         })
 
-    # save results
+    # save combined results
     output_df = pd.DataFrame(output_records)
     output_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_coordinates.csv"
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -104,9 +116,11 @@ async def google_geocode(dataset: str) -> int:
 
     success_count = output_df[["latitude", "longitude"]].notna().all(axis=1).sum()
     logger.info(
-        "geocoding completed: %d/%d addresses successfully geocoded",
+        "geocoding completed: %d/%d total addresses successfully geocoded (%d existing + %d new)",
         success_count,
-        len(addresses),
+        len(all_results),
+        len(existing_results),
+        len(results),
     )
     logger.info("results saved to: %s", output_path)
     return 0
