@@ -50,7 +50,7 @@ def prepare_centro_filters(centro, top_3_ciiu_principal):
         top_3_ciiu_principal: The top 3 CIIU principal for the centro
 
     Returns:
-        tuple[list[int], bool, str]: The filter options and UI for the city tab
+        list[int]: The filter codes for the centro
 
     """
     centro_norm = normalise_str(centro)
@@ -61,22 +61,13 @@ def prepare_centro_filters(centro, top_3_ciiu_principal):
     ].tolist()
     ciiu_labels = [format_ciiu(c) for c in ciiu_opts]
 
-    col_filter, col_toggle = st.columns([4, 1])
-    with col_filter:
-        select_options = ["Todas", "Top 3", *ciiu_labels]
-        selected_label = st.selectbox(
-            "Actividad económica (CIIU)",
-            select_options,
-            index=0,
-            key=f"ciiu_sel_{centro}",
-        )
-
-    with col_toggle:
-        show_rues = st.checkbox(
-            "Mostrar controles RUES",
-            value=True,
-            key=f"show_rues_{centro}",
-        )
+    select_options = ["Todas", "Top 3", *ciiu_labels]
+    selected_label = st.selectbox(
+        "Actividad económica (CIIU)",
+        select_options,
+        index=0,
+        key=f"ciiu_sel_{centro}",
+    )
 
     # Determine filter codes
     if selected_label == "Todas":
@@ -87,7 +78,7 @@ def prepare_centro_filters(centro, top_3_ciiu_principal):
         label_to_code = {format_ciiu(c): c for c in ciiu_opts}
         codes_filter = [label_to_code[selected_label]]
 
-    return codes_filter, show_rues
+    return codes_filter
 
 
 def prepare_map_data(data_with_coords, codes_filter):
@@ -125,19 +116,6 @@ def render_centro_map(centro, cfg, data_with_coords_plot_df, show_rues):
         show_rues: Whether to show the RUES layer
 
     """
-    # Layers
-
-    # Define centro groupings for special cases
-    manrique_medellin = {"Manrique", "Medellín"}
-    suba_ciudad_bolivar = {"Suba", "Ciudad Bolivar"}
-
-    if centro in manrique_medellin:
-        centro_mask = data_with_coords_plot_df["centro"].isin(manrique_medellin)
-    elif centro in suba_ciudad_bolivar:
-        centro_mask = data_with_coords_plot_df["centro"].isin(suba_ciudad_bolivar)
-    else:
-        centro_mask = data_with_coords_plot_df["centro"] == centro
-
     layer_zasca_y_rues = make_layer(
         data_with_coords_plot_df[
             data_with_coords_plot_df["zasca_and_rues"] & (data_with_coords_plot_df["centro"] == centro)
@@ -151,7 +129,9 @@ def render_centro_map(centro, cfg, data_with_coords_plot_df, show_rues):
         CLR_ZASCA_LIGHT,
     )
     layer_rues = make_layer(
-        data_with_coords_plot_df[(data_with_coords_plot_df["rues_only"]) & centro_mask],
+        data_with_coords_plot_df[
+            (data_with_coords_plot_df["rues_only"]) & (data_with_coords_plot_df["centro"] == centro)
+        ],
         CLR_RUES,
     )
 
@@ -247,11 +227,11 @@ def render_centro_plots(centro, data_with_coords_plot_df, codes_filter):
     )
 
 
-def render_centro_tab(centro, cfg, data_tuple):
+def render_centro_tab(centro, cfg, data_tuple, show_rues):
     """Render a single centro tab with map and plots."""
     data_with_coords, top_3_ciiu_principal = data_tuple
 
-    codes_filter, show_rues = prepare_centro_filters(centro, top_3_ciiu_principal)
+    codes_filter = prepare_centro_filters(centro, top_3_ciiu_principal)
     data_with_coords_plot_df = prepare_map_data(data_with_coords, codes_filter)
 
     col_map, col_side = st.columns([1, 1], gap="medium")
@@ -263,14 +243,14 @@ def render_centro_tab(centro, cfg, data_tuple):
         render_centro_plots(centro, data_with_coords_plot_df, codes_filter)
 
 
-def render_map_tabs(data_tuple):
+def render_map_tabs(data_tuple, show_rues):
     """Render all centro map tabs."""
     centro_tabs = st.tabs(list(CENTRO_CONFIG.keys()))
 
     for centro, tab in zip(CENTRO_CONFIG.keys(), centro_tabs, strict=True):
         with tab:
             cfg = CENTRO_CONFIG[centro]
-            render_centro_tab(centro, cfg, data_tuple)
+            render_centro_tab(centro, cfg, data_tuple, show_rues)
 
 
 def render_strategy_iv():
@@ -589,10 +569,20 @@ def main() -> None:
     st.title("Cohortes ZASCA y RUES")
 
     data = get_data()
+
+    # App-wide controls
+    with st.sidebar:
+        st.header("Controles")
+        show_rues = st.checkbox(
+            "Mostrar controles RUES",
+            value=True,
+            help="Mostrar unidades productivas que solo están en RUES (no en ZASCA)",
+        )
+
     maps_tab, strategies_tab, analysis_tab = st.tabs(["Mapas", "Estrategias", "Análisis"])
 
     with maps_tab:
-        render_map_tabs(data)
+        render_map_tabs(data, show_rues)
     with strategies_tab:
         render_strategies_tab()
     with analysis_tab:
