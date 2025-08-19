@@ -11,9 +11,9 @@
 
 <meta name="author" content="David Ampudia Vicente" />
 
-<meta name="date" content="2025-07-29" />
+<meta name="date" content="2025-08-19" />
 
-<title>Diagnóstico de variables - ZASCA</title>
+<title>Diagnóstico de variables instrumentales - ZASCA</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -350,614 +350,540 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">Diagnóstico de variables - ZASCA</h1>
+<h1 class="title toc-ignore">Diagnóstico de variables instrumentales -
+ZASCA</h1>
 <h4 class="author">David Ampudia Vicente</h4>
-<h4 class="date">2025-07-29</h4>
+<h4 class="date">2025-08-19</h4>
 
 </div>
 
 
-<p><strong>Datos cargados</strong>: Panel de 4,852 observaciones con 45
+<p>Para estimar el impacto de ZASCA, es fundamental aislar el efecto del
+programa de las características inherentes de las empresas que deciden
+participar. Una empresa más innovadora o con mejores perspectivas podría
+estar más inclinada a inscribirse, lo que contaminaría una comparación
+simple.</p>
+<p>La estrategia inicial para resolver este problema fue usar la
+distancia de la unidad productiva al centro ZASCA como una variable
+instrumental, un enfoque utilizado en la literatura de evaluación de
+impacto. La teoría es simple: una mayor distancia aumenta los costos de
+acceso (tiempo, transporte) y, por tanto, debería reducir la
+probabilidad de que una unidad productiva participe. El supuesto clave
+es que la ubicación de los centros es quasi-aleatoria (como observamos
+en Suba) y no está correlacionada con el potencial económico de las
+zonas, de modo que la distancia solo afecta a los resultados a través de
+la participación.</p>
+<div id="diagnóstico-empírico-y-conclusiones-sobre-el-instrumento" class="section level2">
+<h2>Diagnóstico empírico y conclusiones sobre el instrumento</h2>
+<p>Al llevar esta teoría a los datos, la estrategia instrumental se
+muestra difícilmente aplicable. El análisis sistemático revela que la
+distancia, en cualquiera de sus especificaciones (lineal, no lineal, o
+por tramos), es un predictor fuerte de la participación; sin embargo, la
+dirección del efecto no es consistente.</p>
+<p>Las conclusiones clave son:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Relevancia</strong>: Las especifaciones del instrumento
+superan de manera consistente ul umbral mínimo de fuerza (F-stat &gt;
+10). El efecto es el esperado en la distancia lineal: a mayor distancia,
+menor probabilidad de participación.</li>
+<li><strong>Inconsistencia teórica</strong>: Los resultados de medidas
+de distancia más complejas contradicen la teoría y resultados del
+instrumento lineal. En <em>todas</em> las especificaciones alternativas,
+estar más cerca del centro ZASCA parece asociado con una <em>menor</em>
+probabilidad de participar. Esto sugiere problemas más profundos de
+endogeneidad (por ejemplo, que los centros se ubican en zonas con
+unidades productivas menos dinámicas) que invalidan por completo la
+lógica del instrumento.</li>
+<li><strong>Heterogeneidad por centros</strong>: Una hipótesis para
+explicar esta falta de consistencia es que la distancia puede suponer
+una barrera real solo en contextos muy específicos, como grandes
+metrópolis congestionadas (ej. Bogotá), pero es un factor menor en el
+resto de ciudades. Al analizar el efecto a nivel agregado, esta posible
+señal se diluye por completo. Indicadores alternativos son sensibles al
+tamaño de la ciudad.</li>
+</ol>
+</div>
+<div id="tests-de-la-estrategia" class="section level2">
+<h2>Tests de la estrategia</h2>
+<p>A continuación se presentan los resultados de los tests de la
+estrategia. Estos incluyen comprobar la relevancia y la exclusión del
+instrumento, seguidos de regresiones IV para aquellos centros con
+cohortes que completaron el programa en 2023.</p>
+<div id="datos-y-variables" class="section level3">
+<h3>Datos y variables</h3>
+<p>El panel que utilizamos consiste de 25190 observaciones con 51
 variables que incluye empresas de ambos datasets (RUES y ZASCA) para los
 años 2023-2024.</p>
-<pre class="r"><code>participantes_zasca &lt;- data_long %&gt;%
-  filter(zasca_participant == 1) %&gt;%
-  distinct(numberid_emp1, .keep_all = TRUE)
-cat(&quot;Number of unique numberid_emp1 for zasca participants:&quot;, nrow(participantes_zasca), &quot;\n&quot;)</code></pre>
-<pre><code>## Number of unique numberid_emp1 for zasca participants: 350</code></pre>
-<div id="variable-preparation" class="section level1">
-<h1>Variable Preparation</h1>
-<pre class="r"><code># Check availability of sales variables for treatment definition
-sales_vars &lt;- c(
-  &quot;sales2020s&quot;, &quot;sales2021s&quot;, &quot;sales2022s&quot;, &quot;sales2023q1s&quot;, &quot;sales2024q1s&quot;, &quot;salesaverage2024&quot;
-)
-for (var in sales_vars) {
-  non_na &lt;- sum(!is.na(participantes_zasca[[var]]))
-  cat(sprintf(&quot;  %s: %d non-NA observations\n&quot;, var, non_na))
-}</code></pre>
-<pre><code>##   sales2020s: 349 non-NA observations
-##   sales2021s: 349 non-NA observations
-##   sales2022s: 349 non-NA observations
-##   sales2023q1s: 344 non-NA observations
-##   sales2024q1s: 344 non-NA observations
-##   salesaverage2024: 344 non-NA observations</code></pre>
-<p><strong>Variables de ventas disponibles</strong>: Tenemos 349
-observaciones en ZASCA con ventas para 2020-2022.</p>
-<pre class="r"><code># Treatment distribution
-cat(&quot;ZASCA participation distribution:\n&quot;)</code></pre>
-<pre><code>## ZASCA participation distribution:</code></pre>
-<pre class="r"><code>table(
-  data_long %&gt;% distinct(nit, zasca_participant) %&gt;% pull(zasca_participant),
-  useNA = &quot;ifany&quot;
-)</code></pre>
-<pre><code>## 
-##    0    1 
-## 2071  349</code></pre>
-<pre class="r"><code># Descriptive statistics by treatment group (distinct nits only)
-data_long %&gt;%
-  distinct(nit, .keep_all = TRUE) %&gt;%
-  group_by(zasca_participant) %&gt;%
-  summarise(
-    n = n(),
-    mean_dist_zasca = mean(distancia_centro_zasca, na.rm = TRUE),
-    mean_dist_ciudad = mean(distancia_centro_ciudad, na.rm = TRUE),
-    .groups = &quot;drop&quot;
-  )</code></pre>
-<pre><code>## # A tibble: 2 × 4
-##   zasca_participant     n mean_dist_zasca mean_dist_ciudad
-##               &lt;dbl&gt; &lt;int&gt;           &lt;dbl&gt;            &lt;dbl&gt;
-## 1                 0  2069            5.88             3.64
-## 2                 1   344            5.28             4.04</code></pre>
-<p><strong>Distribución del tratamiento</strong>: 14.4% de las empresas
-únicas (349 de 2,420) son participantes de ZASCA. Unas 168 unidades
-productivas también aparecen en ZASCA, pero no completan el programa.
-Las empresas ZASCA están localizadas más cerca de los centros ZASCA
-(5.28 vs 5.88 km) pero ligeramente más lejos de los centros urbanos
-(4.04 vs 3.64 km) en promedio.</p>
-<pre class="r"><code>coarse_cols &lt;- c(
-  &quot;distancia_centro_ciudad&quot;, &quot;log_empleados&quot;, &quot;log_activos&quot;
-)
-exact_cols &lt;- c(&quot;city&quot;)
-
-mode_function &lt;- function(x) {
-  ux &lt;- unique(x)
-  ux[which.max(tabulate(match(x, ux)))]
-}
-
-cem_data &lt;- data_long %&gt;%
-  filter(complete.cases(across(coarse_cols))) %&gt;%
-  select(zasca_participant, nit, all_of(coarse_cols), all_of(exact_cols)) %&gt;%
-  group_by(nit) %&gt;%
-  summarise(
-    zasca_participant = max(zasca_participant),
-    across(coarse_cols, \(x) mean(x, na.rm = TRUE)),
-    across(exact_cols, mode_function)
-  )
-
-match_out_coarse &lt;- matchit(
-  as.formula(paste0(
-    &quot;zasca_participant ~ &quot;,
-    paste(coarse_cols, collapse = &quot; + &quot;)
-  )),
-  data = cem_data, method = &quot;cem&quot;, k2k = TRUE
-)
-
-match_out_exact &lt;- matchit(
-  as.formula(paste0(
-    &quot;zasca_participant ~ &quot;,
-    paste(exact_cols, collapse = &quot; + &quot;)
-  )),
-  data = cem_data, method = &quot;exact&quot;
-)
-
-cem_data_coarse &lt;- match.data(match_out_coarse)
-cem_data_exact &lt;- match.data(match_out_exact)
-
-combined_cem_data &lt;- intersect(
-  cem_data_coarse$nit,
-  cem_data_exact$nit
-)
-
-cem_data_long &lt;- data_long %&gt;%
-  filter(nit %in% combined_cem_data)
-
-cem_data_long %&gt;%
-  group_by(zasca_participant) %&gt;%
-  summarise(n = n())</code></pre>
-<pre><code>## # A tibble: 2 × 2
-##   zasca_participant     n
-##               &lt;dbl&gt; &lt;int&gt;
-## 1                 0   326
-## 2                 1   298</code></pre>
-<pre class="r"><code>cat(&quot;ZASCA participation distribution:\n&quot;)</code></pre>
-<pre><code>## ZASCA participation distribution:</code></pre>
-<pre class="r"><code>table(
-  cem_data_long %&gt;% distinct(nit, zasca_participant) %&gt;% pull(zasca_participant),
-  useNA = &quot;ifany&quot;
-)</code></pre>
-<pre><code>## 
-##   0   1 
-## 163 148</code></pre>
-<pre class="r"><code>cem_data_long %&gt;%
-  distinct(nit, .keep_all = TRUE) %&gt;%
-  group_by(zasca_participant) %&gt;%
-  summarise(
-    n = n(),
-    mean_dist_zasca = mean(distancia_centro_zasca, na.rm = TRUE),
-    mean_dist_ciudad = mean(distancia_centro_ciudad, na.rm = TRUE),
-    .groups = &quot;drop&quot;
-  )</code></pre>
-<pre><code>## # A tibble: 2 × 4
-##   zasca_participant     n mean_dist_zasca mean_dist_ciudad
-##               &lt;dbl&gt; &lt;int&gt;           &lt;dbl&gt;            &lt;dbl&gt;
-## 1                 0   163            5.07             2.71
-## 2                 1   148            5.62             2.66</code></pre>
 </div>
-<div id="tests-del-instrumento" class="section level1">
-<h1>Tests del instrumento</h1>
-<div id="relevancia-del-instrumento---todas-las-observaciones" class="section level2">
-<h2>Relevancia del instrumento - Todas las observaciones</h2>
-<pre class="r"><code># Test if distance predicts ZASCA participation
-# First stage regression for 2023
-relevance_model &lt;- lm(
-  zasca_participant ~ instrument_distance + distancia_centro_ciudad +
+<div id="distribución-del-tratamiento" class="section level3">
+<h3>Distribución del tratamiento</h3>
+<pre class="r"><code># Treatment distribution
+table(
+  data_long %&gt;% distinct(up_id, zasca_participant) %&gt;% pull(zasca_participant),
+  useNA = &quot;ifany&quot;
+)</code></pre>
+<pre><code>## 
+##     0     1 
+## 11543  1052</code></pre>
+<pre class="r"><code># Descriptive statistics by treatment group
+data_long %&gt;%
+  distinct(up_id, .keep_all = TRUE) %&gt;%
+  group_by(zasca_participant) %&gt;%
+  summarise(
+    n = n(),
+    mean_dist_zasca = mean(distancia_centro_zasca, na.rm = TRUE),
+    mean_dist_ciudad = mean(distancia_centro_ciudad, na.rm = TRUE),
+    .groups = &quot;drop&quot;
+  )</code></pre>
+<pre><code>## # A tibble: 2 × 4
+##   zasca_participant     n mean_dist_zasca mean_dist_ciudad
+##               &lt;dbl&gt; &lt;int&gt;           &lt;dbl&gt;            &lt;dbl&gt;
+## 1                 0 11543            6.49             5.03
+## 2                 1  1051            5.86             4.93</code></pre>
+</div>
+<div id="relevancia-del-instrumento---especificación-base" class="section level3">
+<h3>Relevancia del instrumento - Especificación base</h3>
+<div id="distancia-lineal" class="section level4">
+<h4>Distancia lineal</h4>
+<pre class="r"><code># Test basic linear distance instrument
+first_stage_linear &lt;- feols(
+  zasca_post ~ instrument_distance:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print(&quot;=== Distancia lineal ===&quot;)</code></pre>
+<pre><code>## [1] &quot;=== Distancia lineal ===&quot;</code></pre>
+<pre class="r"><code>print(summary(first_stage_linear))</code></pre>
+<pre><code>## OLS estimation, Dep. Var.: zasca_post
+## Observations: 25,190
+## Fixed-effects: up_id: 12,594,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                                    Estimate Std. Error  t value  Pr(&gt;|t|)    
+## instrument_distance:post_treatment -0.00124   0.000386 -3.21212 0.0013209 ** 
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## RMSE: 0.138319     Adj. R2: 0.043795
+##                  Within R2: 7.793e-4</code></pre>
+<p>El efecto es negativo y significativo, aunque explica poco la
+variabilidad de la participación (R2 ajustado de 0.043). Esto sugiere
+que a mayor distancia, menor probabilidad de participación.</p>
+</div>
+</div>
+<div id="relevancia-del-instrumento---especificaciones-alternativas" class="section level3">
+<h3>Relevancia del instrumento - Especificaciones alternativas</h3>
+<div id="i-efectos-no-lineales-de-distancia" class="section level4">
+<h4>i) Efectos no lineales de distancia</h4>
+<div id="decaimiento-exponencial" class="section level5">
+<h5>Decaimiento exponencial</h5>
+<pre class="r"><code># Test exponential decay instruments
+first_stage_exp_decay &lt;- feols(
+  zasca_post ~ instrument_distance_exp_decay:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_exp_decay))</code></pre>
+<pre><code>## OLS estimation, Dep. Var.: zasca_post
+## Observations: 25,190
+## Fixed-effects: up_id: 12,594,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                                              Estimate Std. Error t value   Pr(&gt;|t|)    
+## instrument_distance_exp_decay:post_treatment 0.120711   0.020905 5.77428 7.9108e-09 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## RMSE: 0.138102     Adj. R2: 0.046789
+##                  Within R2: 0.003909</code></pre>
+<p>Contrario a la teoría, el efecto es positivo y significativo. Esto
+sugiere que, para nuestra muestra de unidades productivas, una mayor
+distancia está asociada a una mayor probabilidad de participar.</p>
+<p>Este resultado contraintuitivo, junto con la inconsistencia general
+entre las distintas especificaciones, invalida la lógica teórica del
+instrumento. La explicación más probable no es que la distancia
+incentive la participación, sino que existe una endogeneidad en la
+localización de los centros. Es decir, los centros probablemente se
+ubicaron en zonas con una alta concentración de empresas con
+características particulares (p. ej., más vulnerables), las cuales, a
+pesar de estar cerca, tienen una baja propensión a participar.</p>
+<p>En este escenario, la distancia deja de ser un instrumento exógeno y
+se convierte en un indicador de las características no observadas de las
+empresas, rompiendo el supuesto de exclusión. ##### Decaimiento
+cuadrático</p>
+<pre class="r"><code># Test quadratic decay instruments
+first_stage_quad_decay &lt;- feols(
+  zasca_post ~ instrument_distance_quad_decay:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_quad_decay))</code></pre>
+<pre><code>## OLS estimation, Dep. Var.: zasca_post
+## Observations: 25,190
+## Fixed-effects: up_id: 12,594,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                                               Estimate Std. Error t value   Pr(&gt;|t|)    
+## instrument_distance_quad_decay:post_treatment 0.094681   0.016298 5.80931 6.4248e-09 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## RMSE: 0.138105     Adj. R2: 0.046755
+##                  Within R2: 0.003873</code></pre>
+</div>
+</div>
+<div id="ii-distancias-binadas" class="section level4">
+<h4>ii) Distancias binadas</h4>
+<pre class="r"><code># Test distance dummy instruments
+first_stage_near_only &lt;- feols(
+  zasca_post ~ instrument_distance_dummy_near:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_near_only))</code></pre>
+<pre><code>## OLS estimation, Dep. Var.: zasca_post
+## Observations: 25,190
+## Fixed-effects: up_id: 12,594,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                                               Estimate Std. Error t value  Pr(&gt;|t|)    
+## instrument_distance_dummy_near:post_treatment  0.01598   0.004916 3.25071 0.0011542 ** 
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## RMSE: 0.138315     Adj. R2: 0.043845
+##                  Within R2: 8.324e-4</code></pre>
+</div>
+<div id="ii-distancias-normalizadas" class="section level4">
+<h4>ii) Distancias normalizadas</h4>
+<pre class="r"><code># Test normalized distance instruments
+first_stage_distance_norm &lt;- feols(
+  zasca_post ~ instrument_distance_city_norm:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_distance_norm))</code></pre>
+<pre><code>## OLS estimation, Dep. Var.: zasca_post
+## Observations: 25,190
+## Fixed-effects: up_id: 12,594,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                                              Estimate Std. Error t value   Pr(&gt;|t|)    
+## instrument_distance_city_norm:post_treatment 0.098692   0.014206 6.94711 3.9118e-12 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## RMSE: 0.137952     Adj. R2: 0.048858
+##                  Within R2: 0.006071</code></pre>
+</div>
+</div>
+<div id="comparación-de-instrumentos" class="section level3">
+<h3>Comparación de instrumentos</h3>
+<p>A continuación se presenta una tabla comparativa de la fuerza de los
+diferentes instrumentos:</p>
+<p>Los resultados de la comparativa son bastante conclusivos: el
+instrumento lineal es relevante, pero los instrumentos no lineales
+contradicen la teoría, y muestran que la participación es mayor, mayor
+es la distancia al centro.</p>
+</div>
+<div id="relevancia-por-centro" class="section level3">
+<h3>Relevancia por centro</h3>
+<pre class="r"><code># Test distance instruments by centro
+first_stage_by_centro &lt;- feols(
+  zasca_post ~ instrument_distance:post_treatment:factor(centro) |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_by_centro, stage = 1))</code></pre>
+<pre><code>## OLS estimation, Dep. Var.: zasca_post
+## Observations: 25,190
+## Fixed-effects: up_id: 12,594,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                                                                  Estimate Std. Error   t value   Pr(&gt;|t|)    
+## instrument_distance:post_treatment:factor(centro)20Julio        -0.009767   0.001365 -7.152575 8.9875e-13 ***
+## instrument_distance:post_treatment:factor(centro)Baranoa        -0.001187   0.000424 -2.800194 5.1150e-03 ** 
+## instrument_distance:post_treatment:factor(centro)Bucaramanga    -0.008250   0.003249 -2.539047 1.1127e-02 *  
+## instrument_distance:post_treatment:factor(centro)Cali Norte     -0.006174   0.001387 -4.452358 8.5663e-06 ***
+## instrument_distance:post_treatment:factor(centro)Cartagena       0.016264   0.005107  3.184785 1.4521e-03 ** 
+## instrument_distance:post_treatment:factor(centro)Caucasia        0.107588   0.022611  4.758282 1.9742e-06 ***
+## instrument_distance:post_treatment:factor(centro)Ciudad Bolivar  0.001827   0.002326  0.785281 4.3230e-01    
+## instrument_distance:post_treatment:factor(centro)Cúcuta         -0.003342   0.000856 -3.906304 9.4208e-05 ***
+## instrument_distance:post_treatment:factor(centro)Manizales       0.000522   0.001010  0.516556 6.0548e-01    
+## instrument_distance:post_treatment:factor(centro)Manrique       -0.006360   0.001116 -5.699931 1.2255e-08 ***
+## instrument_distance:post_treatment:factor(centro)Medellín        0.007124   0.002389  2.982038 2.8688e-03 ** 
+## instrument_distance:post_treatment:factor(centro)Riohacha        0.013531   0.007243  1.868185 6.1759e-02 .  
+## instrument_distance:post_treatment:factor(centro)Suba            0.001249   0.002844  0.439348 6.6042e-01    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## RMSE: 0.136947     Adj. R2: 0.061779
+##                  Within R2: 0.020507</code></pre>
+<p>Los resultados del primer estadio, ahora desagregados por centro,
+revelan una marcada heterogeneidad en el efecto de la distancia, lo que
+invalida su uso como instrumento. Si bien los efectos fijos por empresa
+(up_id) controlan la propensión media a participar de cada unidad, no
+pueden resolver el hecho de que el significado de la “distancia” cambia
+radicalmente de una ciudad a otra.</p>
+<p>En ciudades con coeficientes negativos y significativos (como
+20Julio, Cúcuta o Manrique), los resultados se alinean con la teoría: la
+distancia funciona como una barrera de acceso y desincentiva la
+participación.</p>
+<p>Sin embargo, en otras ciudades con coeficientes positivos y
+significativos (como Cartagena, Caucasia o Medellín), el resultado es
+contraintuitivo. Esto sugiere que el instrumento está capturando una
+dinámica local opuesta. La explicación más plausible es que en estas
+localidades los centros ZASCA están ubicados en “zonas de intervención
+social”, y por lo tanto, estar lejos de ellos implica estar en una zona
+comercial más dinámica, donde las empresas tienen una mayor propensión a
+participar. En estos casos, la distancia no mide un coste de acceso,
+sino que funciona como un proxy del dinamismo económico local.</p>
+<p>Esta inconsistencia fundamental demuestra que la distancia no es un
+instrumento válido a nivel agregado. Su relación con la participación no
+es unívoca, sino que depende de factores contextuales que la
+correlacionan con la misma propensión a participar que se intenta
+corregir.</p>
+</div>
+</div>
+<div id="exclusión-del-instrumento" class="section level2">
+<h2>Exclusión del instrumento</h2>
+<pre class="r"><code># Test exclusion restriction - distance should not affect outcomes in pre-treatment period
+exclusion_test &lt;- lm(
+  log_ingresos ~ instrument_distance + distancia_centro_ciudad +
     log_empleados + log_activos + factor(city),
   data = data_long %&gt;% filter(year == 2023)
-)</code></pre>
-<pre class="r"><code>summary(relevance_model)</code></pre>
+)
+
+summary(exclusion_test)</code></pre>
 <pre><code>## 
 ## Call:
-## lm(formula = zasca_participant ~ instrument_distance + distancia_centro_ciudad + 
+## lm(formula = log_ingresos ~ instrument_distance + distancia_centro_ciudad + 
 ##     log_empleados + log_activos + factor(city), data = data_long %&gt;% 
 ##     filter(year == 2023))
 ## 
 ## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -0.80699 -0.09871 -0.06890 -0.01507  1.03052 
-## 
-## Coefficients:
-##                                     Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)                        -0.052449   0.066908  -0.784 0.433193    
-## instrument_distance                -0.010137   0.003410  -2.973 0.002983 ** 
-## distancia_centro_ciudad             0.004196   0.003301   1.271 0.203839    
-## log_empleados                       0.022738   0.008670   2.622 0.008793 ** 
-## log_activos                         0.007973   0.003729   2.138 0.032644 *  
-## factor(city)Bellobello             -0.109223   0.181614  -0.601 0.547635    
-## factor(city)Bucaramanga             0.061119   0.036405   1.679 0.093330 .  
-## factor(city)Bucaramangaaguachica   -0.084561   0.255945  -0.330 0.741140    
-## factor(city)Bucaramangabucaramanga  0.717600   0.118398   6.061 1.60e-09 ***
-## factor(city)Copacabana             -0.043665   0.129874  -0.336 0.736744    
-## factor(city)Cucuta                  0.082021   0.042233   1.942 0.052258 .  
-## factor(city)Cucutacucuta            0.505507   0.184773   2.736 0.006275 ** 
-## factor(city)Don matias              0.021006   0.148023   0.142 0.887163    
-## factor(city)Floridablanca           0.939268   0.118250   7.943 3.19e-15 ***
-## factor(city)Itagüi                 -0.005894   0.047430  -0.124 0.901115    
-## factor(city)Los patios              0.017171   0.053642   0.320 0.748927    
-## factor(city)Marinilla               0.018158   0.160626   0.113 0.910005    
-## factor(city)Medellin               -0.064403   0.032937  -1.955 0.050676 .  
-## factor(city)Medellinmedellin        0.493220   0.181869   2.712 0.006744 ** 
-## factor(city)Piedecuesta             0.883408   0.255826   3.453 0.000565 ***
-## factor(city)Sumapaz                 0.005184   0.256725   0.020 0.983891    
-## factor(city)Villa del rosario      -0.013159   0.042481  -0.310 0.756778    
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Residual standard error: 0.2533 on 2096 degrees of freedom
-##   (308 observations deleted due to missingness)
-## Multiple R-squared:  0.09604,    Adjusted R-squared:  0.08699 
-## F-statistic:  10.6 on 21 and 2096 DF,  p-value: &lt; 2.2e-16</code></pre>
-<pre class="r"><code># F-statistic for weak instrument test
-relevance_fstat &lt;- summary(relevance_model)$fstatistic[1]
-cat(&quot;\nFirst-stage F-statistic:&quot;, round(relevance_fstat, 3), &quot;\n&quot;)</code></pre>
-<pre><code>## 
-## First-stage F-statistic: 10.605</code></pre>
-<p>El F-estadístico supera el umbral de 10 para instrumentos fuertes
-(F=10.605). El instrumento es significativo (p=0.003), indicando que la
-distancia predice la participación en ZASCA.</p>
-</div>
-<div id="relevancia-del-instrumento---empresas-emparejadas" class="section level2">
-<h2>Relevancia del instrumento - Empresas emparejadas</h2>
-<pre class="r"><code># Test if distance predicts ZASCA participation
-# First stage regression for 2023
-relevance_model &lt;- lm(
-  zasca_participant ~ instrument_distance + distancia_centro_ciudad +
-    log_empleados + log_activos + factor(city),
-  data = cem_data_long %&gt;% filter(year == 2023)
-)</code></pre>
-<pre class="r"><code>summary(relevance_model)</code></pre>
-<pre><code>## 
-## Call:
-## lm(formula = zasca_participant ~ instrument_distance + distancia_centro_ciudad + 
-##     log_empleados + log_activos + factor(city), data = cem_data_long %&gt;% 
-##     filter(year == 2023))
-## 
-## Residuals:
 ##     Min      1Q  Median      3Q     Max 
-## -0.7853 -0.5172 -0.1270  0.4413  0.9094 
-## 
-## Coefficients:
-##                                Estimate Std. Error t value Pr(&gt;|t|)  
-## (Intercept)                    0.256543   0.380150   0.675   0.5003  
-## instrument_distance           -0.018896   0.015235  -1.240   0.2158  
-## distancia_centro_ciudad        0.029688   0.015225   1.950   0.0521 .
-## log_empleados                 -0.003841   0.045221  -0.085   0.9324  
-## log_activos                    0.018153   0.019734   0.920   0.3584  
-## factor(city)Bucaramanga        0.029741   0.217974   0.136   0.8916  
-## factor(city)Cucuta             0.117834   0.225280   0.523   0.6013  
-## factor(city)Itagüi            -0.190332   0.308020  -0.618   0.5371  
-## factor(city)Los patios        -0.083844   0.309847  -0.271   0.7869  
-## factor(city)Medellin          -0.406381   0.208934  -1.945   0.0527 .
-## factor(city)Villa del rosario -0.143856   0.247837  -0.580   0.5621  
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Residual standard error: 0.4761 on 296 degrees of freedom
-##   (5 observations deleted due to missingness)
-## Multiple R-squared:  0.123,  Adjusted R-squared:  0.09342 
-## F-statistic: 4.153 on 10 and 296 DF,  p-value: 2.174e-05</code></pre>
-<pre class="r"><code># F-statistic for weak instrument test
-relevance_fstat &lt;- summary(relevance_model)$fstatistic[1]
-cat(&quot;\nFirst-stage F-statistic:&quot;, round(relevance_fstat, 3), &quot;\n&quot;)</code></pre>
-<pre><code>## 
-## First-stage F-statistic: 4.153</code></pre>
-<p>El F-estadístico no supera el umbral de 10 para instrumentos fuertes
-(F=4.153). El instrumento no es significativo (p=0.216).</p>
-</div>
-<div id="exclusión-del-instrumento---todas-las-observaciones" class="section level2">
-<h2>Exclusión del instrumento - Todas las observaciones</h2>
-<pre class="r"><code>exclusion &lt;- lm(
-  log_ingresos ~ instrument_distance + distancia_centro_ciudad +
-    log_empleados + log_activos + factor(city),
-  data = data_long %&gt;% filter(year == 2023)
-)
-
-cat(&quot;Efecto del instrumento en ingresos pre-programa:\n&quot;)</code></pre>
-<pre><code>## Efecto del instrumento en ingresos pre-programa:</code></pre>
-<pre class="r"><code>summary(exclusion)$coefficients[&quot;instrument_distance&quot;, ]</code></pre>
-<pre><code>##   Estimate Std. Error    t value   Pr(&gt;|t|) 
-## 0.03272265 0.09108419 0.35925723 0.71943886</code></pre>
-<p>La distancia al centro ZASCA no afecta significativamente los
-ingresos de empresas previas al programa, apoyando la restricción de
-exclusión para empresas que no participan en el programa.</p>
-<pre class="r"><code>exclusion &lt;- lm(
-  log_activos ~ instrument_distance + distancia_centro_ciudad +
-    log_empleados + log_ingresos + factor(city),
-  data = data_long %&gt;% filter(year == 2023)
-)
-
-cat(&quot;Efecto del instrumento en activos pre-programa:\n&quot;)</code></pre>
-<pre><code>## Efecto del instrumento en activos pre-programa:</code></pre>
-<pre class="r"><code>summary(exclusion)$coefficients[&quot;instrument_distance&quot;, ]</code></pre>
-<pre><code>##    Estimate  Std. Error     t value    Pr(&gt;|t|) 
-## -0.01481145  0.01930466 -0.76724744  0.44302083</code></pre>
-<pre class="r"><code>exclusion &lt;- lm(
-  log_empleados ~ instrument_distance + distancia_centro_ciudad +
-    log_activos + log_ingresos + factor(city),
-  data = data_long %&gt;% filter(year == 2023)
-)
-
-cat(&quot;Efecto del instrumento en empleados pre-programa:\n&quot;)</code></pre>
-<pre><code>## Efecto del instrumento en empleados pre-programa:</code></pre>
-<pre class="r"><code>summary(exclusion)$coefficients[&quot;instrument_distance&quot;, ]</code></pre>
-<pre><code>##     Estimate   Std. Error      t value     Pr(&gt;|t|) 
-## -0.013743313  0.008551356 -1.607150264  0.108172029</code></pre>
-</div>
-<div id="exclusión-del-instrumento---empresas-emparejadas" class="section level2">
-<h2>Exclusión del instrumento - Empresas emparejadas</h2>
-<pre class="r"><code>exclusion &lt;- lm(
-  log_ingresos ~ instrument_distance + distancia_centro_ciudad +
-    log_empleados + log_activos + factor(city),
-  data = cem_data_long %&gt;% filter(year == 2023)
-)
-
-cat(&quot;Efecto del instrumento en ingresos pre-programa:\n&quot;)</code></pre>
-<pre><code>## Efecto del instrumento en ingresos pre-programa:</code></pre>
-<pre class="r"><code>summary(exclusion)$coefficients[&quot;instrument_distance&quot;, ]</code></pre>
-<pre><code>##   Estimate Std. Error    t value   Pr(&gt;|t|) 
-## -0.1242685  0.2032157 -0.6115102  0.5413312</code></pre>
-<pre class="r"><code>exclusion &lt;- lm(
-  log_activos ~ instrument_distance + distancia_centro_ciudad +
-    log_empleados + log_ingresos + factor(city),
-  data = cem_data_long %&gt;% filter(year == 2023)
-)
-
-cat(&quot;Efecto del instrumento en activos pre-programa:\n&quot;)</code></pre>
-<pre><code>## Efecto del instrumento en activos pre-programa:</code></pre>
-<pre class="r"><code>summary(exclusion)$coefficients[&quot;instrument_distance&quot;, ]</code></pre>
-<pre><code>##     Estimate   Std. Error      t value     Pr(&gt;|t|) 
-## -0.002213422  0.041486276 -0.053353105  0.957486558</code></pre>
-<pre class="r"><code>exclusion &lt;- lm(
-  log_empleados ~ instrument_distance + distancia_centro_ciudad +
-    log_activos + log_ingresos + factor(city),
-  data = cem_data_long %&gt;% filter(year == 2023)
-)
-
-cat(&quot;Efecto del instrumento en empleados pre-programa:\n&quot;)</code></pre>
-<pre><code>## Efecto del instrumento en empleados pre-programa:</code></pre>
-<pre class="r"><code>summary(exclusion)$coefficients[&quot;instrument_distance&quot;, ]</code></pre>
-<pre><code>##    Estimate  Std. Error     t value    Pr(&gt;|t|) 
-## -0.00384056  0.01959203 -0.19602668  0.84472379</code></pre>
-<p>Ídem para empresas emparejadas.</p>
-</div>
-</div>
-<div id="iv-análisis" class="section level1">
-<h1>IV Análisis</h1>
-<pre class="r"><code># IV model using ivreg
-iv_model &lt;- ivreg(
-  log_ingresos ~ zasca_post + log_empleados + log_activos +
-    factor(city) + factor(year) |
-    instrument_distance + distancia_centro_ciudad + log_empleados +
-      log_activos + factor(city) + factor(year),
-  data = data_long
-)
-
-summary(iv_model)</code></pre>
-<pre><code>## 
-## Call:
-## ivreg(formula = log_ingresos ~ zasca_post + log_empleados + log_activos + 
-##     factor(city) + factor(year) | instrument_distance + distancia_centro_ciudad + 
-##     log_empleados + log_activos + factor(city) + factor(year), 
-##     data = data_long)
-## 
-## Residuals:
-##      Min       1Q   Median       3Q      Max 
-## -19.3057  -0.1925   1.8220   3.7660  11.5624 
-## 
-## Coefficients:
-##                                     Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)                         -6.32466    1.12495  -5.622 2.02e-08 ***
-## zasca_post                           2.04119   10.36052   0.197 0.843826    
-## log_empleados                        0.81118    0.26208   3.095 0.001981 ** 
-## log_activos                          1.15705    0.06643  17.417  &lt; 2e-16 ***
-## factor(city)Bellobello               1.15574    3.19651   0.362 0.717698    
-## factor(city)Bucaramanga              0.14854    0.63887   0.233 0.816156    
-## factor(city)Bucaramangaaguachica     4.77706    4.39047   1.088 0.276642    
-## factor(city)Bucaramangabucaramanga   3.05366    3.65267   0.836 0.403203    
-## factor(city)Copacabana               2.01663    2.56184   0.787 0.431227    
-## factor(city)Cucuta                   1.91034    0.53648   3.561 0.000374 ***
-## factor(city)Cucutacucuta             2.29797    3.71406   0.619 0.536137    
-## factor(city)Don matias               2.13129    2.49476   0.854 0.392990    
-## factor(city)Floridablanca            0.92009    5.20904   0.177 0.859806    
-## factor(city)Itagüi                   2.05534    0.86497   2.376 0.017541 *  
-## factor(city)Los patios               1.33389    0.94121   1.417 0.156507    
-## factor(city)Marinilla                1.94560    2.65453   0.733 0.463643    
-## factor(city)Medellin                -0.41640    0.66688  -0.624 0.532398    
-## factor(city)Medellinmedellin        -2.35791    3.86470  -0.610 0.541824    
-## factor(city)Piedecuesta              1.08129    6.38689   0.169 0.865571    
-## factor(city)Ragonvalia             -14.68815   11.25755  -1.305 0.192062    
-## factor(city)Sumapaz                 -4.90251    4.37738  -1.120 0.262800    
-## factor(city)Villa del rosario        1.92569    0.76338   2.523 0.011691 *  
-## factor(year)2024                     1.62209    0.96351   1.684 0.092358 .  
-## 
-## Diagnostic tests:
-##                   df1  df2 statistic p-value   
-## Weak instruments    2 3778     4.939 0.00721 **
-## Wu-Hausman          1 3778     0.026 0.87153   
-## Sargan              1   NA     1.998 0.15749   
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Residual standard error: 6.124 on 3779 degrees of freedom
-## Multiple R-Squared: 0.1882,  Adjusted R-squared: 0.1835 
-## Wald test: 40.25 on 22 and 3779 DF,  p-value: &lt; 2.2e-16</code></pre>
-<p>El coeficiente estimado es 2.04 (p=0.844), indicando un efecto
-positivo pero no significativo de la participación en ZASCA sobre los
-ingresos logarítmicos. Este resultado debe interpretarse con cautela
-dado que: (1) los instrumentos son débiles (F=4.939), aunque (2) el R²
-es positivo (0.188). Los tests muestran ausencia de endogeneidad
-(Wu-Hausman p=0.872) y validez de instrumentos (Sargan p=0.157).</p>
-<pre class="r"><code># IV model using ivreg
-iv_model &lt;- ivreg(
-  log_ingresos ~ zasca_post + log_empleados + log_activos +
-    factor(city) + factor(year) |
-    instrument_distance + distancia_centro_ciudad + log_empleados +
-      log_activos + factor(city) + factor(year),
-  data = cem_data_long
-)
-
-summary(iv_model)</code></pre>
-<pre><code>## 
-## Call:
-## ivreg(formula = log_ingresos ~ zasca_post + log_empleados + log_activos + 
-##     factor(city) + factor(year) | instrument_distance + distancia_centro_ciudad + 
-##     log_empleados + log_activos + factor(city) + factor(year), 
-##     data = cem_data_long)
-## 
-## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -25.432  -6.765   1.748   5.708  18.011 
+## -21.763  -5.026   1.723   5.219  19.292 
 ## 
 ## Coefficients:
 ##                                Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)                   -10.14574    5.04092  -2.013   0.0446 *  
-## zasca_post                     18.44056   19.25214   0.958   0.3386    
-## log_empleados                   0.05119    0.60407   0.085   0.9325    
-## log_activos                     1.50755    0.24722   6.098 2.01e-09 ***
-## factor(city)Bucaramanga        -1.44495    2.85137  -0.507   0.6125    
-## factor(city)Cucuta              0.85462    2.97935   0.287   0.7743    
-## factor(city)Itagüi             -7.26240    4.23717  -1.714   0.0871 .  
-## factor(city)Los patios          0.39958    4.21838   0.095   0.9246    
-## factor(city)Medellin            0.11925    5.95457   0.020   0.9840    
-## factor(city)Villa del rosario   1.32159    3.54266   0.373   0.7093    
-## factor(year)2024               -8.05210   10.22880  -0.787   0.4315    
+## (Intercept)                   -16.98143    0.73897 -22.980  &lt; 2e-16 ***
+## instrument_distance             0.03844    0.04354   0.883 0.377313    
+## distancia_centro_ciudad        -0.06243    0.04600  -1.357 0.174767    
+## log_empleados                   1.29068    0.09795  13.177  &lt; 2e-16 ***
+## log_activos                     1.27772    0.03983  32.077  &lt; 2e-16 ***
+## factor(city)Barrancabermeja    11.80294    7.02576   1.680 0.092993 .  
+## factor(city)Barranquilla        0.23588    0.77589   0.304 0.761126    
+## factor(city)Bello               9.67147    2.90459   3.330 0.000872 ***
+## factor(city)Bogotá              3.49627    0.54444   6.422 1.40e-10 ***
+## factor(city)Bucaramanga         7.31394    0.51375  14.236  &lt; 2e-16 ***
+## factor(city)Cali                2.62355    0.53433   4.910 9.23e-07 ***
+## factor(city)Cartagena           6.88324    0.77393   8.894  &lt; 2e-16 ***
+## factor(city)Caucasia           10.66293    0.73567  14.494  &lt; 2e-16 ***
+## factor(city)Cucuta             10.57836    0.58551  18.067  &lt; 2e-16 ***
+## factor(city)Floridablanca      11.45627    2.52560   4.536 5.79e-06 ***
+## factor(city)Giron              12.17019    7.02516   1.732 0.083233 .  
+## factor(city)Güepsa             -2.13618    7.02389  -0.304 0.761034    
+## factor(city)Ibague             -1.17610    7.02416  -0.167 0.867029    
+## factor(city)Itagüi             10.80844    0.85601  12.627  &lt; 2e-16 ***
+## factor(city)Juan de acosta      0.04729    0.87363   0.054 0.956832    
+## factor(city)Los patios          8.82808    1.93720   4.557 5.24e-06 ***
+## factor(city)Manizales           9.96702    0.64403  15.476  &lt; 2e-16 ***
+## factor(city)Medellin            8.43859    0.50893  16.581  &lt; 2e-16 ***
+## factor(city)Montelibano         9.98181    7.02530   1.421 0.155390    
+## factor(city)Piedecuesta         3.25668    3.53775   0.921 0.357303    
+## factor(city)Planeta rica       11.15669    7.02469   1.588 0.112265    
+## factor(city)Riohacha            9.68228    0.73418  13.188  &lt; 2e-16 ***
+## factor(city)Riosucio            9.37862    1.61531   5.806 6.56e-09 ***
+## factor(city)Sabanalarga        -1.26576    3.19699  -0.396 0.692170    
+## factor(city)Turbaco            12.49591    7.02631   1.778 0.075357 .  
+## factor(city)Villa del rosario  10.44265    0.78157  13.361  &lt; 2e-16 ***
+## factor(city)Villamaria         10.38506    1.43582   7.233 5.02e-13 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
 ## 
-## Diagnostic tests:
-##                  df1 df2 statistic p-value
-## Weak instruments   2 557     0.870   0.419
-## Wu-Hausman         1 557     1.956   0.162
-## Sargan             1  NA     0.966   0.326
-## 
-## Residual standard error: 8.36 on 558 degrees of freedom
-## Multiple R-Squared: -0.5329, Adjusted R-squared: -0.5603 
-## Wald test: 10.18 on 10 and 558 DF,  p-value: 8.047e-16</code></pre>
-<p>El coeficiente estimado sobre el grupo de unidades productivas
-emparejadas es 18.44 pero insignificante (p=0.339). El F-estadístico
-indica instrumentos muy débiles (F=0.870).</p>
+## Residual standard error: 7.007 on 11860 degrees of freedom
+##   (703 observations deleted due to missingness)
+## Multiple R-squared:  0.3385, Adjusted R-squared:  0.3368 
+## F-statistic: 195.8 on 31 and 11860 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>La distancia al centro ZASCA no afecta significativamente los
+ingresos de empresas previas al programa, apoyando la restricción de
+exclusión.</p>
 </div>
-<div id="diferencia-en-diferencias" class="section level1">
-<h1>Diferencia en diferencias</h1>
-<div id="regresión-directa-naive" class="section level2">
-<h2>Regresión directa (naive)</h2>
-<pre class="r"><code># Standard DiD with firm and year fixed effects
-did_model &lt;- feols(
-  log_ingresos ~ zasca_post + log_empleados + log_activos | nit + year,
-  data = data_long
+<div id="análisis-de-2sls" class="section level2">
+<h2>Análisis de 2SLS</h2>
+<p>Los tests de diagnóstico y la inestabilidad de los resultados
+confirman que la <strong>estrategia IV no es fiable y sus resultados no
+deben interpretarse como un efecto causal</strong>.</p>
+<ol style="list-style-type: decimal">
+<li>Test de relevancia (F-statistic de la 1ª etapa): Hemos encontrado
+especificaciones de la distancia que son estadísticamente relevantes
+(decaimientos y normalizadas), pero esto no garantiza que sean
+válidas.</li>
+<li>Test de endogeneidad (Wu-Hausman): La variable de participación
+(<code>zasca_post</code>) es endógena. Un simple modelo de Diferencias
+en Diferencias probablemente arrojaría un resultado sesgado, lo que
+justifica la búsqueda de una solución como el IV.</li>
+<li>Test de validez de los instrumentos (Sargan): Los instrumentos no
+son válidos. La hipótesis nula es que los instrumentos son válidos (es
+decir, no están correlacionados con factores no observados que afectan
+los ingresos). Esta hipótesis es rechazada. Los instrumentos <strong>NO
+son válidos</strong>. Confirma nuestra conclusión anterior: la distancia
+está correlacionada con otras características que afectan los ingresos,
+violando la restricción de exclusión.</li>
+<li>Inestabilidad de los resultados: El coeficiente del tratamiento
+(<code>fit_zasca_post</code>) varía desde <strong>+56</strong> en el
+modelo básico hasta <strong>+98</strong> con la dummy de cercanía. El
+signo y la magnitud dependen completamente de una pequeña decisión sobre
+cómo transformar la variable de distancia.</li>
+</ol>
+<div id="modelo-iv-básico" class="section level3">
+<h3>Modelo IV básico</h3>
+<pre class="r"><code># Simple IV model with feols
+iv_model &lt;- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance:post_treatment + distancia_centro_ciudad:post_treatment,
+  data = data_clean
 )
 
-summary(did_model)</code></pre>
-<pre><code>## OLS estimation, Dep. Var.: log_ingresos
-## Observations: 3,802
-## Fixed-effects: nit: 2,125,  year: 2
-## Standard-errors: Clustered (nit) 
-##                Estimate Std. Error  t value  Pr(&gt;|t|)    
-## zasca_post    -0.366325   0.346516 -1.05717 0.2905553    
-## log_empleados  0.835627   0.558624  1.49587 0.1348371    
-## log_activos    1.421291   0.482076  2.94827 0.0032304 ** 
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## RMSE: 2.65538     Adj. R2: 0.651169
-##                 Within R2: 0.032745</code></pre>
-<p>El efecto del tratamiento ZASCA*Post no es significativo (p=0.291),
-sugiriendo que no hay un efecto causal claro de ZASCA en el modelo de
-diferencias-en-diferencias estándar.</p>
-<pre class="r"><code># Standard DiD with firm and year fixed effects
-did_model &lt;- feols(
-  log_ingresos ~ zasca_post + log_empleados + log_activos | nit + year,
-  data = cem_data_long
-)
-
-summary(did_model)</code></pre>
-<pre><code>## OLS estimation, Dep. Var.: log_ingresos
-## Observations: 569
-## Fixed-effects: nit: 311,  year: 2
-## Standard-errors: Clustered (nit) 
-##               Estimate Std. Error  t value Pr(&gt;|t|)    
-## zasca_post    -1.02646   0.592136 -1.73349 0.084003 .  
-## log_empleados  1.07212   0.872599  1.22865 0.220134    
-## log_activos    1.27641   0.705560  1.80908 0.071407 .  
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## RMSE: 2.20682     Adj. R2: 0.75641 
-##                 Within R2: 0.049719</code></pre>
-<p>El efecto directo del tratamiento ZASCA*Post es marginalmente
-significativo y negativo (-1.026, p=0.084).</p>
-</div>
-<div id="regresión-forma-reducida-naive" class="section level2">
-<h2>Regresión forma reducida (naive)</h2>
-<pre class="r"><code># Standard DiD with firm and year fixed effects
-did_model &lt;- feols(
-  log_ingresos ~ instrument_distance * zasca_post + distancia_centro_ciudad +
-    log_empleados + log_activos | city + year,
-  data = data_long
-)
-
-summary(did_model)</code></pre>
-<pre><code>## OLS estimation, Dep. Var.: log_ingresos
-## Observations: 3,802
-## Fixed-effects: city: 19,  year: 2
-## Standard-errors: Clustered (city) 
-##                                 Estimate Std. Error   t value   Pr(&gt;|t|)    
-## instrument_distance             0.026410   0.037212  0.709712 4.8698e-01    
-## zasca_post                      0.130369   0.355751  0.366462 7.1829e-01    
-## distancia_centro_ciudad        -0.079007   0.053421 -1.478952 1.5644e-01    
-## log_empleados                   0.847071   0.110638  7.656254 4.5544e-07 ***
-## log_activos                     1.155553   0.063304 18.253959 4.6336e-13 ***
-## instrument_distance:zasca_post  0.043023   0.024464  1.758584 9.5638e-02 .  
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## RMSE: 6.09609     Adj. R2: 0.185428
-##                 Within R2: 0.1589</code></pre>
-<p>El efecto directo del tratamiento ZASCA*Post no es significativo
-(p=0.718), pero la interacción con la distancia es marginalmente
-significativa (p=0.096), sugiriendo que el efecto varía con la distancia
-al centro ZASCA.</p>
-<pre class="r"><code># Standard DiD with firm and year fixed effects
-did_model &lt;- feols(
-  log_ingresos ~ instrument_distance * zasca_post + distancia_centro_ciudad +
-    log_empleados + log_activos | city + year,
-  data = cem_data_long
-)
-
-summary(did_model)</code></pre>
-<pre><code>## OLS estimation, Dep. Var.: log_ingresos
-## Observations: 569
-## Fixed-effects: city: 7,  year: 2
-## Standard-errors: Clustered (city) 
-##                                 Estimate Std. Error   t value  Pr(&gt;|t|)    
-## instrument_distance            -0.046591   0.135262 -0.344453 0.7422580    
-## zasca_post                     -0.271990   1.055703 -0.257638 0.8052945    
-## distancia_centro_ciudad         0.270337   0.100918  2.678765 0.0365964 *  
-## log_empleados                   0.294040   0.422861  0.695358 0.5128478    
-## log_activos                     1.531533   0.257894  5.938617 0.0010179 ** 
-## instrument_distance:zasca_post  0.036924   0.069553  0.530873 0.6145733    
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## RMSE: 5.66475     Adj. R2: 0.265438
-##                 Within R2: 0.227286</code></pre>
-<p>El efecto del tratamiento en empresas emparejadas parece positivo
-pero no significativo (p=0.805), y la interacción con distancia tampoco
-es significativa (p=0.615).</p>
-</div>
-<div id="regresión-con-iv" class="section level2">
-<h2>Regresión con IV</h2>
-<pre class="r"><code># DiD with IV
-did_iv_model &lt;- feols(
-  log_ingresos ~ log_empleados + log_activos | city + year |
-    zasca_post ~ instrument_distance + distancia_centro_ciudad,
-  data = data_long
-)
-
-summary(did_iv_model)</code></pre>
+print(summary(iv_model))</code></pre>
 <pre><code>## TSLS estimation - Dep. Var.: log_ingresos
 ##                   Endo.    : zasca_post
-##                   Instr.   : instrument_distance, distancia_centro_ciudad
+##                   Instr.   : instrument_distance:post_treatment, post_treatment:distancia_centro_ciudad
 ## Second stage: Dep. Var.: log_ingresos
-## Observations: 3,802
-## Fixed-effects: city: 19,  year: 2
-## Standard-errors: Clustered (city) 
-##                Estimate Std. Error   t value   Pr(&gt;|t|)    
-## fit_zasca_post 2.041189   3.695685  0.552317 5.8752e-01    
-## log_empleados  0.811176   0.113405  7.152907 1.1612e-06 ***
-## log_activos    1.157052   0.062793 18.426328 3.9445e-13 ***
+## Observations: 21,162
+## Fixed-effects: up_id: 11,948,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                 Estimate Std. Error t value   Pr(&gt;|t|)    
+## fit_zasca_post 56.735142  35.428258 1.60141 1.0931e-01    
+## log_empleados   0.748140   0.383615 1.95024 5.1171e-02 .  
+## log_activos     1.274294   0.316317 4.02854 5.6472e-05 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## RMSE: 6.10586     Adj. R2: 0.183464
-##                 Within R2: 0.156201
-## F-test (1st stage), zasca_post: stat = 4.96288 , p = 0.007038, on 2 and 3,796 DoF.
-##                     Wu-Hausman: stat = 0.026155, p = 0.871531, on 1 and 3,778 DoF.
-##                         Sargan: stat = 1.99818 , p = 0.157488, on 1 DoF.</code></pre>
-<pre class="r"><code># DiD with IV
-did_iv_model &lt;- feols(
-  log_ingresos ~ log_empleados + log_activos | city + year |
-    zasca_post ~ instrument_distance + distancia_centro_ciudad,
-  data = cem_data_long
+## RMSE: 5.51829     Adj. R2: 0.011813
+##                 Within R2: -2.75566
+## F-test (1st stage), zasca_post: stat =  4.05106, p = 0.017417, on 2 and 21,156 DoF.
+##                     Wu-Hausman: stat = 10.2    , p = 0.001379, on 1 and 9,209 DoF.
+##                         Sargan: stat = 20.4    , p = 6.211e-6, on 1 DoF.</code></pre>
+</div>
+<div id="instrumentos-alternativos---decaimiento-exponencial" class="section level3">
+<h3>Instrumentos alternativos - Decaimiento exponencial</h3>
+<pre class="r"><code># Test alternative instruments individually (without city distance control to avoid collinearity)
+print(&quot;=== Decaimiento exponencial ===&quot;)</code></pre>
+<pre><code>## [1] &quot;=== Decaimiento exponencial ===&quot;</code></pre>
+<pre class="r"><code>iv_exp_decay &lt;- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance_exp_decay:post_treatment,
+  data = data_clean
 )
-
-summary(did_iv_model)</code></pre>
+print(summary(iv_exp_decay))</code></pre>
 <pre><code>## TSLS estimation - Dep. Var.: log_ingresos
 ##                   Endo.    : zasca_post
-##                   Instr.   : instrument_distance, distancia_centro_ciudad
+##                   Instr.   : instrument_distance_exp_decay:post_treatment
 ## Second stage: Dep. Var.: log_ingresos
-## Observations: 569
-## Fixed-effects: city: 7,  year: 2
-## Standard-errors: Clustered (city) 
-##                 Estimate Std. Error  t value  Pr(&gt;|t|)    
-## fit_zasca_post 18.440564  19.065526 0.967220 0.3707872    
-## log_empleados   0.051193   0.859193 0.059582 0.9544233    
-## log_activos     1.507552   0.345299 4.365934 0.0047399 ** 
+## Observations: 21,162
+## Fixed-effects: up_id: 11,948,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                 Estimate Std. Error t value   Pr(&gt;|t|)    
+## fit_zasca_post 57.544359  19.448247 2.95885 3.0940e-03 ** 
+## log_empleados   0.747152   0.385880 1.93623 5.2864e-02 .  
+## log_activos     1.271016   0.295462 4.30179 1.7077e-05 ***
 ## ---
 ## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## RMSE: 8.27835     Adj. R2: -0.560322
-##                 Within R2: -0.650234
-## F-test (1st stage), zasca_post: stat = 0.879482, p = 0.415567, on 2 and 563 DoF.
-##                     Wu-Hausman: stat = 1.95636 , p = 0.16246 , on 1 and 557 DoF.
-##                         Sargan: stat = 0.96622 , p = 0.325625, on 1 DoF.</code></pre>
-<p>El modelo con empresas emparejadas no es significativo.</p>
-<p>Esto en parte no es malo - ya que no esperamos ver reflejado de
-primeras un efecto. También me preocupa el CEM a nivel distancia, ya que
-debería eliminar la habilidad de predecir participación en base a
-distancia, ¿no?</p>
+## RMSE: 5.57691     Adj. R2: -0.009293
+##                 Within R2: -2.83588 
+## F-test (1st stage), zasca_post: stat = 40.6, p = 1.914e-10, on 1 and 21,157 DoF.
+##                     Wu-Hausman: stat = 53.0, p = 3.576e-13, on 1 and 9,209 DoF.</code></pre>
 </div>
+<div id="instrumentos-alternativos---decaimiento-cuadrático" class="section level3">
+<h3>Instrumentos alternativos - Decaimiento cuadrático</h3>
+<pre class="r"><code>print(&quot;=== Decaimiento cuadrático ===&quot;)</code></pre>
+<pre><code>## [1] &quot;=== Decaimiento cuadrático ===&quot;</code></pre>
+<pre class="r"><code>iv_quad_decay &lt;- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance_quad_decay:post_treatment,
+  data = data_clean
+)
+print(summary(iv_quad_decay))</code></pre>
+<pre><code>## TSLS estimation - Dep. Var.: log_ingresos
+##                   Endo.    : zasca_post
+##                   Instr.   : instrument_distance_quad_decay:post_treatment
+## Second stage: Dep. Var.: log_ingresos
+## Observations: 21,162
+## Fixed-effects: up_id: 11,948,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                 Estimate Std. Error t value   Pr(&gt;|t|)    
+## fit_zasca_post 59.979781  19.805571 3.02843 2.4635e-03 ** 
+## log_empleados   0.744178   0.396816 1.87537 6.0766e-02 .  
+## log_activos     1.261149   0.301679 4.18043 2.9303e-05 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## RMSE: 5.75456     Adj. R2: -0.07462
+##                 Within R2: -3.08415
+## F-test (1st stage), zasca_post: stat = 41.6, p = 1.152e-10, on 1 and 21,157 DoF.
+##                     Wu-Hausman: stat = 59.0, p = 1.695e-14, on 1 and 9,209 DoF.</code></pre>
+</div>
+<div id="instrumentos-alternativos---dummy-cercana-5km" class="section level3">
+<h3>Instrumentos alternativos - Dummy cercana (≤5km)</h3>
+<pre class="r"><code>print(&quot;=== Dummy cercana (≤5km) ===&quot;)</code></pre>
+<pre><code>## [1] &quot;=== Dummy cercana (≤5km) ===&quot;</code></pre>
+<pre class="r"><code>iv_dummy_near &lt;- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance_dummy_near:post_treatment,
+  data = data_clean
+)
+print(summary(iv_dummy_near))</code></pre>
+<pre><code>## TSLS estimation - Dep. Var.: log_ingresos
+##                   Endo.    : zasca_post
+##                   Instr.   : instrument_distance_dummy_near:post_treatment
+## Second stage: Dep. Var.: log_ingresos
+## Observations: 21,162
+## Fixed-effects: up_id: 11,948,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                 Estimate Std. Error t value  Pr(&gt;|t|)    
+## fit_zasca_post 98.337440  37.151755 2.64691 0.0081337 ** 
+## log_empleados   0.697336   0.583750 1.19458 0.2322751    
+## log_activos     1.105748   0.416239 2.65652 0.0079056 ** 
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## RMSE: 8.70768     Adj. R2: -1.46057
+##                 Within R2: -8.35152
+## F-test (1st stage), zasca_post: stat = 17.5, p = 2.826e-5 , on 1 and 21,157 DoF.
+##                     Wu-Hausman: stat = 67.0, p = 3.092e-16, on 1 and 9,209 DoF.</code></pre>
+</div>
+<div id="instrumentos-alternativos---distancia-normalizada" class="section level3">
+<h3>Instrumentos alternativos - Distancia normalizada</h3>
+<pre class="r"><code>print(&quot;=== Distancia normalizada ===&quot;)</code></pre>
+<pre><code>## [1] &quot;=== Distancia normalizada ===&quot;</code></pre>
+<pre class="r"><code>iv_distance_norm &lt;- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance_city_norm:post_treatment,
+  data = data_clean
+)
+print(summary(iv_distance_norm))</code></pre>
+<pre><code>## TSLS estimation - Dep. Var.: log_ingresos
+##                   Endo.    : zasca_post
+##                   Instr.   : instrument_distance_city_norm:post_treatment
+## Second stage: Dep. Var.: log_ingresos
+## Observations: 21,162
+## Fixed-effects: up_id: 11,948,  year: 2
+## Standard-errors: Clustered (up_id) 
+##                  Estimate Std. Error   t value Pr(&gt;|t|)    
+## fit_zasca_post -201.62912  256.40678 -0.786364 0.431670    
+## log_empleados     1.06365    1.13897  0.933872 0.350389    
+## log_activos       2.32102    1.18173  1.964093 0.049542 *  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## RMSE: 17.1     Adj. R2:  -8.52942
+##              Within R2: -35.2    
+## F-test (1st stage), zasca_post: stat =  2.13301, p = 0.144172, on 1 and 21,157 DoF.
+##                     Wu-Hausman: stat = 34.1    , p = 5.366e-9, on 1 and 9,209 DoF.</code></pre>
+</div>
+</div>
+<div id="conclusión" class="section level2">
+<h2>Conclusión</h2>
+<p>La estrategia IV no es fiable y sus resultados no deben interpretarse
+como un efecto causal.</p>
+<p><strong>Veredicto Final:</strong> Los tests de diagnóstico
+(especialmente el de Sargan) y la inconsistencia de los resultados
+demuestran que la distancia, en cualquiera de sus formas, <strong>no es
+un instrumento válido para este análisis</strong>. Aunque la
+endogeneidad es un problema real (como muestra el test de Wu-Hausman),
+el IV no es la solución adecuada aquí.</p>
 </div>
 
 
