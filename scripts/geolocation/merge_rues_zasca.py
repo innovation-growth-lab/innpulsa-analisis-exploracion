@@ -63,65 +63,52 @@ def haversine_distance(lat1, lon1, lat2, lon2) -> float:
     return c * r
 
 
-def find_closest_centro_with_ciiu_match(location, centros_dict, ciiu_principal, centro_ciiu_mapping, row_index=None):
+def find_closest_centro_simple(location, centros_dict, row_index=None):
     """
-    Find the closest centro that matches one of the top three CIIU codes from ZASCA participants for that center.
+    Find the closest centro, with special handling for Medellín/Manrique.
 
     Args:
         location: Tuple of (latitude, longitude)
         centros_dict: Dictionary with centro names as keys and [lat, lon] as values
-        ciiu_principal: CIIU code of the current business
-        centro_ciiu_mapping: Dictionary mapping centro names to their top 3 CIIU codes
         row_index: Index of the current row (used for deterministic assignment between Manrique/Medellín)
 
     Returns:
-        str: Name of the closest centro that matches CIIU, or None if no match found
+        str: Name of the closest centro
 
     """
     lat, lon = location
-    # convert ciiu_principal to string for comparison
-    ciiu_str = str(ciiu_principal) if not pd.isna(ciiu_principal) else None
 
-    # find the closest centro that has matching CIIU codes
+    # find the closest centro
     min_distance = float("inf")
     closest_centro = None
-    matching_centros = []
+    all_centros = []
 
     for centro_name, coords in centros_dict.items():
-        # get top CIIU codes for this center
-        top_ciiu_codes = centro_ciiu_mapping.get(centro_name, [])
+        distance = haversine_distance(lat, lon, coords[0], coords[1])
+        all_centros.append((centro_name, distance))
 
-        # if no CIIU codes available for this center, skip it
-        if not top_ciiu_codes:
-            continue
-
-        # check if current business CIIU matches any of the top codes for this center
-        top_ciiu_strs = [str(code) for code in top_ciiu_codes]
-        if ciiu_str in top_ciiu_strs:
-            # CIIU matches, calculate distance
-            distance = haversine_distance(lat, lon, coords[0], coords[1])
-            matching_centros.append((centro_name, distance))
-
-            if distance < min_distance:
-                min_distance = distance
-                closest_centro = centro_name
+        if distance < min_distance:
+            min_distance = distance
+            closest_centro = centro_name
 
     # Special handling for Manrique and Medellín (same city)
     if closest_centro in {"Manrique", "Medellín"}:
-        # Check if both Manrique and Medellín are among the matching centros
-        manrique_medellin_matches = [
-            (centro, dist) for centro, dist in matching_centros if centro in {"Manrique", "Medellín"}
+        # Check if both Manrique and Medellín are among the closest options
+        manrique_medellin_centros = [
+            (centro, dist) for centro, dist in all_centros if centro in {"Manrique", "Medellín"}
         ]
 
-        if len(manrique_medellin_matches) >= 2:  # noqa: PLR2004
+        # Sort by distance and take the two closest
+        manrique_medellin_centros.sort(key=itemgetter(1))
+
+        if len(manrique_medellin_centros) >= 2:  # noqa: PLR2004
             # Both are available, assign based on row index for roughly equal distribution
             if row_index is not None:
                 if row_index % 2 == 0:
                     return "Manrique"
                 return "Medellín"
             # fallback: use the closest one
-            manrique_medellin_matches.sort(key=itemgetter(1))
-            return manrique_medellin_matches[0][0]
+            return manrique_medellin_centros[0][0]
 
     return closest_centro
 
@@ -347,43 +334,12 @@ def merge_datasets(rues_with_coords: pd.DataFrame, zasca_with_coords: pd.DataFra
     return data_with_coords[~data_with_coords["up_id"].isin(["0", "1"])]  # type: ignore[return-value]
 
 
-def get_centro_ciiu_mapping(data_with_coords: pd.DataFrame) -> dict:
+def assign_control_centros(data_with_coords: pd.DataFrame) -> pd.DataFrame:
     """
-    Get mapping of centers to their top 3 CIIU codes from ZASCA participants.
-
-    Args:
-        data_with_coords: Merged dataset
-
-    Returns:
-        Dictionary mapping centro names to top 3 CIIU codes
-
-    """
-    # get top 3 CIIU codes per center from ZASCA participants (rows with sales2022s not being NaN)
-    zasca_participants = data_with_coords[data_with_coords["sales2022s"].notna()].copy()
-
-    # create a mapping of center to top 3 CIIU codes from ZASCA participants
-    centro_ciiu_mapping = {}
-    for centro in centros_zasca:
-        # get ZASCA participants for this center
-        centro_participants = zasca_participants[zasca_participants["centro"] == centro]
-
-        # get top 3 CIIU codes for this center
-        ciiu_counts = centro_participants["ciiu_principal_2023"].value_counts()
-        top_3_ciiu_codes = ciiu_counts.head(3).index.tolist()
-        centro_ciiu_mapping[centro] = top_3_ciiu_codes
-
-        logger.info("  %s: top 3 CIIU codes %s", centro, top_3_ciiu_codes)
-
-    return centro_ciiu_mapping
-
-
-def assign_control_centros(data_with_coords: pd.DataFrame, centro_ciiu_mapping: dict) -> pd.DataFrame:
-    """
-    Assign centers to control units based on CIIU matching and distance.
+    Assign centers to control units based on distance.
 
     Args:
         data_with_coords: Dataset with control units
-        centro_ciiu_mapping: Mapping of centers to CIIU codes
 
     Returns:
         DataFrame with assigned centers
@@ -393,13 +349,11 @@ def assign_control_centros(data_with_coords: pd.DataFrame, centro_ciiu_mapping: 
     control_mask = data_with_coords["centro"].isna()
     control_data = data_with_coords[control_mask].copy()
 
-    # apply the closest centro function with CIIU matching to control units
+    # apply the closest centro function to control units
     control_data["centro"] = control_data.apply(
-        lambda row: find_closest_centro_with_ciiu_match(
+        lambda row: find_closest_centro_simple(
             (row["latitude"], row["longitude"]),
             centros_zasca,
-            row["ciiu_principal_2023"],
-            centro_ciiu_mapping,
             row.name,
         ),
         axis=1,
@@ -472,12 +426,8 @@ def main() -> None:
     data_with_coords = merge_datasets(rues_with_coords, zasca_with_coords)
     logger.info("Datasets merged")
 
-    # Get centro-CIIU mapping
-    centro_ciiu_mapping = get_centro_ciiu_mapping(data_with_coords)
-    logger.info("Centro-CIIU mapping created")
-
     # Assign centers to control units
-    data_with_coords = assign_control_centros(data_with_coords, centro_ciiu_mapping)
+    data_with_coords = assign_control_centros(data_with_coords)
     logger.info("Control centers assigned")
 
     # Assign yearcohorts
