@@ -1,0 +1,407 @@
+---
+title: "Diagnóstico de variables instrumentales - ZASCA"
+author: "David Ampudia Vicente"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+# Clean workspace
+rm(list = ls())
+options(max.print = 1000, width = 300)
+```
+
+```{r packages, include=FALSE}
+setwd("~/projects/innpulsa-analisis-exploracion/analysis/01_iv")
+# Load required packages
+list_of_packages <- c("arrow", "tidyverse", "ivreg", "fixest")
+new_packages <- list_of_packages[!(list_of_packages %in% installed.packages()[, "Package"])]
+if (length(new_packages)) {
+  install.packages(new_packages, repos = "http://cran.us.r-project.org")
+}
+invisible(lapply(list_of_packages, library, character.only = TRUE))
+
+# Set paths relative to project root
+project_root <- "../../" # From analysis/01_iv/ go up to project root
+
+# Assign dplyr functions
+select <- dplyr::select
+summarise <- dplyr::summarise
+```
+
+Para estimar el impacto de ZASCA, es fundamental aislar el efecto del programa de las características inherentes de las empresas que deciden participar. Una empresa más innovadora o con mejores perspectivas podría estar más inclinada a inscribirse, lo que contaminaría una comparación simple.
+
+La estrategia inicial para resolver este problema fue usar la distancia de la unidad productiva al centro ZASCA como una variable instrumental, un enfoque utilizado en la literatura de evaluación de impacto. La teoría es simple: una mayor distancia aumenta los costos de acceso (tiempo, transporte) y, por tanto, debería reducir la probabilidad de que una unidad productiva participe. El supuesto clave es que la ubicación de los centros es quasi-aleatoria (como observamos en Suba) y no está correlacionada con el potencial económico de las zonas, de modo que la distancia solo afecta a los resultados a través de la participación.
+
+```{r load-data, include=FALSE}
+# Load panel data
+data_file_path <- file.path(project_root, "data/03_analysis/01_iv/data_long.csv")
+
+data_long <- read_csv(
+  data_file_path,
+  locale = locale(encoding = "UTF-8"),
+  col_types = cols(.default = col_guess(), `...1` = col_character())
+)
+
+data_long <- data_long %>%
+  mutate(
+    # Variable de tratamiento: participación en ZASCA
+    zasca_participant = ifelse(!is.na(Cierre), 1, 0),
+
+    # Post-treatment indicator
+    post_treatment = ifelse(year == 2024, 1, 0),
+
+    # did treatment variable (interaction)
+    zasca_post = zasca_participant * post_treatment,
+
+    # instrumento base: distancia a centro ZASCA
+    instrument_distance = distancia_centro_zasca,
+
+    # instrumentos alternativos con efectos no lineales
+    # i) decaimiento exponencial
+    instrument_distance_exp_decay = 1 / exp(distancia_centro_zasca),
+
+    # ii) decaimiento cuadrático
+    instrument_distance_quad_decay = 1 / (1 + distancia_centro_zasca^2),
+
+    # iii) Dummy variables para bins
+    instrument_distance_dummy_near = ifelse(distancia_centro_zasca <= 5, 1, 0),
+
+    # variables de resultado principales
+    log_ingresos = log(ingresos_actividad_ordinaria + 1),
+    log_empleados = log(empleados + 1),
+    log_activos = log(activos_total + 1),
+
+    # categorización de fuente de datos
+    source = case_when(
+      !is.na(activos_total) & !is.na(sales2022s) ~ "rues_zasca",
+      is.na(activos_total) & !is.na(sales2022s) ~ "zasca",
+      !is.na(activos_total) & is.na(sales2022s) ~ "rues",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  group_by(city) %>%
+  mutate(
+    instrument_distance_city_norm = (
+      distancia_centro_zasca /
+        max(distancia_centro_zasca, na.rm = TRUE)
+    )
+  ) %>%
+  ungroup()
+
+cat("Data dimensions:", nrow(data_long), "x", ncol(data_long), "\n")
+```
+
+## Diagnóstico empírico y conclusiones sobre el instrumento
+Al llevar esta teoría a los datos, la estrategia instrumental se muestra difícilmente aplicable. El análisis sistemático revela que la distancia, en cualquiera de sus especificaciones (lineal, no lineal, o por tramos), es un predictor fuerte de la participación; sin embargo, la dirección del efecto no es consistente.
+
+Las conclusiones clave son:
+
+1. **Relevancia**: Las especifaciones del instrumento superan de manera consistente ul umbral mínimo de fuerza (F-stat > 10). El efecto es el esperado en la distancia lineal: a mayor distancia, menor probabilidad de participación.
+2. **Inconsistencia teórica**: Los resultados de medidas de distancia más complejas contradicen la teoría y resultados del instrumento lineal. En _todas_ las especificaciones alternativas, estar más cerca del centro ZASCA parece asociado con una _menor_ probabilidad de participar. Esto sugiere problemas más profundos de endogeneidad (por ejemplo, que los centros se ubican en zonas con unidades productivas menos dinámicas) que invalidan por completo la lógica del instrumento.
+3. **Heterogeneidad por centros**: Una hipótesis para explicar esta falta de consistencia es que la distancia puede suponer una barrera real solo en contextos muy específicos, como grandes metrópolis congestionadas (ej. Bogotá), pero es un factor menor en el resto de ciudades. Al analizar el efecto a nivel agregado, esta posible señal se diluye por completo. Indicadores alternativos son sensibles al tamaño de la ciudad.
+
+## Tests de la estrategia
+
+A continuación se presentan los resultados de los tests de la estrategia. Estos incluyen comprobar la relevancia y la exclusión del instrumento, seguidos de regresiones IV para aquellos centros con cohortes que completaron el programa en 2023.
+
+### Datos y variables
+
+El panel que utilizamos consiste de `r nrow(data_long)` observaciones con `r ncol(data_long)` variables que incluye empresas de ambos datasets (RUES y ZASCA) para los años 2023-2024.
+
+### Distribución del tratamiento
+
+```{r descriptive-stats}
+# Treatment distribution
+table(
+  data_long %>% distinct(up_id, zasca_participant) %>% pull(zasca_participant),
+  useNA = "ifany"
+)
+
+# Descriptive statistics by treatment group
+data_long %>%
+  distinct(up_id, .keep_all = TRUE) %>%
+  group_by(zasca_participant) %>%
+  summarise(
+    n = n(),
+    mean_dist_zasca = mean(distancia_centro_zasca, na.rm = TRUE),
+    mean_dist_ciudad = mean(distancia_centro_ciudad, na.rm = TRUE),
+    .groups = "drop"
+  )
+```
+
+### Relevancia del instrumento - Especificación base
+
+#### Distancia lineal
+
+```{r first-stage-linear}
+# Test basic linear distance instrument
+first_stage_linear <- feols(
+  zasca_post ~ instrument_distance:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print("=== Distancia lineal ===")
+print(summary(first_stage_linear))
+```
+
+El efecto es negativo y significativo, aunque explica poco la variabilidad de la participación (R2 ajustado de 0.043). Esto sugiere que a mayor distancia, menor probabilidad de participación.
+
+### Relevancia del instrumento - Especificaciones alternativas
+
+#### i) Efectos no lineales de distancia
+
+##### Decaimiento exponencial
+
+```{r first-stage-exp-decay}
+# Test exponential decay instruments
+first_stage_exp_decay <- feols(
+  zasca_post ~ instrument_distance_exp_decay:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_exp_decay))
+```
+
+Contrario a la teoría, el efecto es positivo y significativo. Esto sugiere que, para nuestra muestra de unidades productivas, una mayor distancia está asociada a una mayor probabilidad de participar.
+
+Este resultado contraintuitivo, junto con la inconsistencia general entre las distintas especificaciones, invalida la lógica teórica del instrumento. La explicación más probable no es que la distancia incentive la participación, sino que existe una endogeneidad en la localización de los centros. Es decir, los centros probablemente se ubicaron en zonas con una alta concentración de empresas con características particulares (p. ej., más vulnerables), las cuales, a pesar de estar cerca, tienen una baja propensión a participar.
+
+En este escenario, la distancia deja de ser un instrumento exógeno y se convierte en un indicador de las características no observadas de las empresas, rompiendo el supuesto de exclusión.
+##### Decaimiento cuadrático
+
+```{r first-stage-quad-decay}
+# Test quadratic decay instruments
+first_stage_quad_decay <- feols(
+  zasca_post ~ instrument_distance_quad_decay:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_quad_decay))
+```
+
+#### ii) Distancias binadas
+
+```{r first-stage-distance-dummies}
+# Test distance dummy instruments
+first_stage_near_only <- feols(
+  zasca_post ~ instrument_distance_dummy_near:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_near_only))
+```
+
+#### ii) Distancias normalizadas
+
+```{r first-stage-distance-normalised}
+# Test normalized distance instruments
+first_stage_distance_norm <- feols(
+  zasca_post ~ instrument_distance_city_norm:post_treatment |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_distance_norm))
+```
+
+### Comparación de instrumentos
+
+A continuación se presenta una tabla comparativa de la fuerza de los diferentes instrumentos:
+
+```{r instrument-comparison, include=FALSE}
+# Test all instruments and extract F-statistics
+f_stats_results <- data.frame(
+  Instrument = c(
+    "Linear distance",
+    "Exponential decay",
+    "Quadratic decay",
+    "Near dummy (≤5km)",
+    "Normalised distance"
+  ),
+  F_Statistic = NA,
+  Coefficient = NA,
+  P_Value = NA
+)
+
+# Extract results from individual models
+models <- list(
+  first_stage_linear,
+  first_stage_exp_decay,
+  first_stage_quad_decay,
+  first_stage_near_only,
+  first_stage_distance_norm
+)
+
+for (i in seq_along(models)) {
+  if (!is.null(models[[i]])) {
+    summary_model <- summary(models[[i]])
+    if (nrow(summary_model$coeftable) > 0) {
+      f_stats_results$Coefficient[i] <- summary_model$coeftable[1, "Estimate"]
+      f_stats_results$P_Value[i] <- summary_model$coeftable[1, "Pr(>|t|)"]
+      f_stats_results$F_Statistic[i] <- (
+        summary_model$coeftable[1, "Estimate"] / summary_model$coeftable[1, "Std. Error"]
+      )^2
+    }
+  }
+}
+
+# Add strong instrument indicator and significance stars
+f_stats_results$Strong_Instrument <- f_stats_results$F_Statistic > 10
+f_stats_results$Significance <- ifelse(f_stats_results$P_Value < 0.001, "***",
+  ifelse(f_stats_results$P_Value < 0.01, "**",
+    ifelse(f_stats_results$P_Value < 0.05, "*", "")
+  )
+)
+
+# Display results
+print(f_stats_results, digits = 3)
+
+# Find strongest instrument
+strongest_idx <- which.max(f_stats_results$F_Statistic)
+if (!is.na(strongest_idx)) {
+  cat(
+    "\nStrongest instrument:", f_stats_results$Instrument[strongest_idx],
+    "with F =", round(f_stats_results$F_Statistic[strongest_idx], 3), "\n"
+  )
+}
+```
+
+Los resultados de la comparativa son bastante conclusivos: el instrumento lineal es relevante, pero los instrumentos no lineales contradicen la teoría, y muestran que la participación es mayor, mayor es la distancia al centro.
+
+### Relevancia por centro
+
+```{r first-stage-by-city}
+# Test distance instruments by centro
+first_stage_by_centro <- feols(
+  zasca_post ~ instrument_distance:post_treatment:factor(centro) |
+    up_id + year,
+  data = data_long
+)
+
+print(summary(first_stage_by_centro, stage = 1))
+```
+
+Los resultados del primer estadio, ahora desagregados por centro, revelan una marcada heterogeneidad en el efecto de la distancia, lo que invalida su uso como instrumento. Si bien los efectos fijos por empresa (up_id) controlan la propensión media a participar de cada unidad, no pueden resolver el hecho de que el significado de la "distancia" cambia radicalmente de una ciudad a otra.
+
+En ciudades con coeficientes negativos y significativos (como 20Julio, Cúcuta o Manrique), los resultados se alinean con la teoría: la distancia funciona como una barrera de acceso y desincentiva la participación.
+
+Sin embargo, en otras ciudades con coeficientes positivos y significativos (como Cartagena, Caucasia o Medellín), el resultado es contraintuitivo. Esto sugiere que el instrumento está capturando una dinámica local opuesta. La explicación más plausible es que en estas localidades los centros ZASCA están ubicados en "zonas de intervención social", y por lo tanto, estar lejos de ellos implica estar en una zona comercial más dinámica, donde las empresas tienen una mayor propensión a participar. En estos casos, la distancia no mide un coste de acceso, sino que funciona como un proxy del dinamismo económico local.
+
+Esta inconsistencia fundamental demuestra que la distancia no es un instrumento válido a nivel agregado. Su relación con la participación no es unívoca, sino que depende de factores contextuales que la correlacionan con la misma propensión a participar que se intenta corregir.
+
+## Exclusión del instrumento
+
+```{r exclusion-test}
+# Test exclusion restriction - distance should not affect outcomes in pre-treatment period
+exclusion_test <- lm(
+  log_ingresos ~ instrument_distance + distancia_centro_ciudad +
+    log_empleados + log_activos + factor(city),
+  data = data_long %>% filter(year == 2023)
+)
+
+summary(exclusion_test)
+```
+
+La distancia al centro ZASCA no afecta significativamente los ingresos de empresas previas al programa, apoyando la restricción de exclusión.
+
+## Análisis de 2SLS
+
+Los tests de diagnóstico y la inestabilidad de los resultados confirman que la **estrategia IV no es fiable y sus resultados no deben interpretarse como un efecto causal**.
+
+1. Test de relevancia (F-statistic de la 1ª etapa): Hemos encontrado especificaciones de la distancia que son estadísticamente relevantes (decaimientos y normalizadas), pero esto no garantiza que sean válidas.
+2. Test de endogeneidad (Wu-Hausman): La variable de participación (`zasca_post`) es endógena. Un simple modelo de Diferencias en Diferencias probablemente arrojaría un resultado sesgado, lo que justifica la búsqueda de una solución como el IV.
+3. Test de validez de los instrumentos (Sargan): Los instrumentos no son válidos. La hipótesis nula es que los instrumentos son válidos (es decir, no están correlacionados con factores no observados que afectan los ingresos). Esta hipótesis es rechazada. Los instrumentos **NO son válidos**. Confirma nuestra conclusión anterior: la distancia está correlacionada con otras características que afectan los ingresos, violando la restricción de exclusión.
+4. Inestabilidad de los resultados: El coeficiente del tratamiento (`fit_zasca_post`) varía desde **+56** en el modelo básico hasta **+98** con la dummy de cercanía. El signo y la magnitud dependen completamente de una pequeña decisión sobre cómo transformar la variable de distancia.
+
+```{r data-check, include=FALSE}
+# Create clean dataset
+data_clean <- data_long %>%
+  filter(
+    !is.na(log_ingresos),
+    !is.na(log_empleados),
+    !is.na(log_activos),
+    !is.na(zasca_post),
+    !is.na(instrument_distance),
+    !is.na(distancia_centro_ciudad),
+    !is.infinite(log_ingresos),
+    !is.infinite(log_empleados),
+    !is.infinite(log_activos),
+    !is.infinite(instrument_distance)
+  )
+```
+
+### Modelo IV básico
+
+```{r iv-model-simple}
+# Simple IV model with feols
+iv_model <- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance:post_treatment + distancia_centro_ciudad:post_treatment,
+  data = data_clean
+)
+
+print(summary(iv_model))
+```
+
+### Instrumentos alternativos - Decaimiento exponencial
+
+```{r iv-model-alternative-instruments-1}
+# Test alternative instruments individually (without city distance control to avoid collinearity)
+print("=== Decaimiento exponencial ===")
+iv_exp_decay <- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance_exp_decay:post_treatment,
+  data = data_clean
+)
+print(summary(iv_exp_decay))
+```
+
+### Instrumentos alternativos - Decaimiento cuadrático
+
+```{r iv-model-alternative-instruments-2}
+print("=== Decaimiento cuadrático ===")
+iv_quad_decay <- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance_quad_decay:post_treatment,
+  data = data_clean
+)
+print(summary(iv_quad_decay))
+```
+
+### Instrumentos alternativos - Dummy cercana (≤5km)
+
+```{r iv-model-alternative-instruments-3}
+print("=== Dummy cercana (≤5km) ===")
+iv_dummy_near <- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance_dummy_near:post_treatment,
+  data = data_clean
+)
+print(summary(iv_dummy_near))
+```
+
+### Instrumentos alternativos - Distancia normalizada
+
+```{r iv-model-alternative-instruments-4}
+print("=== Distancia normalizada ===")
+iv_distance_norm <- feols(
+  log_ingresos ~ log_empleados + log_activos | up_id + year |
+    zasca_post ~ instrument_distance_city_norm:post_treatment,
+  data = data_clean
+)
+print(summary(iv_distance_norm))
+```
+
+
+## Conclusión
+
+La estrategia IV no es fiable y sus resultados no deben interpretarse como un efecto causal.
+
+**Veredicto Final:** Los tests de diagnóstico (especialmente el de Sargan) y la inconsistencia de los resultados demuestran que la distancia, en cualquiera de sus formas, **no es un instrumento válido para este análisis**. Aunque la endogeneidad es un problema real (como muestra el test de Wu-Hausman), el IV no es la solución adecuada aquí.
