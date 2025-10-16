@@ -32,7 +32,27 @@ ZASCA_RELEVANT_COLUMNS = [
     "cohort",
     "centro",
     "Cierre",
-    "yearcohort"
+
+    # descriptive variables
+    "yearcohort",
+    "birth_emp1",
+    "sex_emp1",
+    "sisben_emp1",
+    "headhousehold",
+    "householdcare",
+    "dpto",
+    "zona",
+    "yearsales",
+    "sales2023",  # many NA
+    "emp_ftc",
+    "emp_htc",
+    "emp_psc",
+    "emp_volc",
+    "emp_internc",
+    "reason2start",
+    "rut",
+    "bookkeeping",
+    "hascredit"
 ]
 
 logger = logging.getLogger("innpulsa.loaders.zasca")

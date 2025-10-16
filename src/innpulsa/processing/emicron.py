@@ -9,13 +9,13 @@ import logging
 from pathlib import Path
 import pandas as pd
 from innpulsa.settings import RAW_DATA_DIR
-from innpulsa.loaders import load_stata
+from innpulsa.loaders import load_stata, load_csv
 
 
 logger = logging.getLogger("innpulsa.processing.emicron")
 
 
-def read_emicron() -> pd.DataFrame:
+def read_2023_emicron() -> pd.DataFrame:
     """Read and process EMICRON data from multiple files.
 
     Returns:
@@ -81,21 +81,12 @@ def read_emicron() -> pd.DataFrame:
     sum_df = df.groupby(group_cols)[sum_vars].sum()
 
     # calculate weighted means
-    def weighted_mean(group: pd.DataFrame) -> pd.Series:
-        """
-        Calculate weighted mean for specified columns.
-
-        Args:
-            group: DataFrame containing the group data
-
-        Returns:
-            pd.Series: Weighted mean for the specified columns
-
-        """
+    def _weighted_mean(group: pd.DataFrame) -> pd.Series:
+        """Calculate weighted mean for specified columns."""
         weights = group[weight_col]
         return pd.Series({col: (group[col] * weights).sum() / weights.sum() for col in mean_vars})
 
-    mean_df = df.groupby(group_cols).apply(weighted_mean)
+    mean_df = df.groupby(group_cols).apply(_weighted_mean)
 
     # combine aggregated data
     result = pd.concat([pd.DataFrame(sum_df), pd.DataFrame(mean_df)], axis=1).reset_index()
@@ -106,3 +97,28 @@ def read_emicron() -> pd.DataFrame:
 
     logger.info("completed EMICRON data processing with %d records", len(result))
     return result
+
+
+def read_2024_emicron() -> dict:
+    """Read all 2024 EMICRON .csv files and return as dictionary.
+
+    Returns:
+        dict: Dictionary with CSV filenames as keys and dataframes as values
+
+    """
+    emicron_2024_dir = Path(RAW_DATA_DIR) / "EMICRON/2024"
+    logger.info("reading 2024 EMICRON data from %s", emicron_2024_dir)
+
+    # find all .csv files in the directory
+    csv_files = list(emicron_2024_dir.glob("*.csv"))
+    logger.info("found %d .csv files in 2024 directory", len(csv_files))
+
+    # load all files into dictionary
+    dataframes = {}
+    for file_path in csv_files:
+        logger.debug("loading file: %s", file_path.name)
+        df = pd.read_csv(file_path, encoding="utf-8-sig")
+        dataframes[file_path.stem] = df  # use filename without extension as key
+
+    logger.info("loaded %d dataframes from 2024 EMICRON files", len(dataframes))
+    return dataframes
