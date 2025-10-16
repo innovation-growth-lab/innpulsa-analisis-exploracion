@@ -32,7 +32,6 @@ ZASCA_RELEVANT_COLUMNS = [
     "cohort",
     "centro",
     "Cierre",
-
     # descriptive variables
     "yearcohort",
     "birth_emp1",
@@ -52,7 +51,7 @@ ZASCA_RELEVANT_COLUMNS = [
     "reason2start",
     "rut",
     "bookkeeping",
-    "hascredit"
+    "hascredit",
 ]
 
 logger = logging.getLogger("innpulsa.loaders.zasca")
@@ -65,7 +64,7 @@ def load_zascas() -> pd.DataFrame:
         pd.DataFrame: Closed ZASCA data from saved CSV file.
 
     """
-    closed_zascas = pd.read_csv(Path(RAW_DATA_DIR) / "Zascas_cerrados.csv", encoding="utf-8-sig")
+    closed_zascas = pd.read_csv(Path(RAW_DATA_DIR) / "Zascas_cerrados.csv", encoding="utf-8-sig", low_memory=False)
     closed_zascas = select_relevant_columns(closed_zascas, closed_zascas.columns.tolist())
     closed_zascas["cohort"] = closed_zascas["cohort"].astype(str) + closed_zascas["centro"].astype(str)
 

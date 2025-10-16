@@ -10,6 +10,16 @@ from innpulsa.settings import DATA_DIR
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.plots.sisben_groups")
 
+# create mapping for positioning
+group_mapping: dict[str, int] = {
+    "A": -1,  # left of axis
+    "B": -1,  # left of axis
+    "C": -1,  # left of axis
+    "D": 1,  # right of axis
+    "Vulnerable": -1,  # left of axis
+    "No vulnerable": 1,  # right of axis
+}
+
 
 def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
     """Create a diverging stacked bar chart for Sisbén groups comparison.
@@ -24,16 +34,6 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
     # prepare data for diverging bars
     df_plot = df_plot.copy()
 
-    # create mapping for positioning
-    group_mapping: dict[str, int] = {
-        "A": -1,  # left of axis
-        "B": -1,  # left of axis
-        "C": -1,  # left of axis
-        "D": 1,  # right of axis
-        "Vulnerable": -1,  # left of axis
-        "No vulnerable": 1,  # right of axis
-    }
-
     # assign positioning and create plot values
     df_plot["position"] = df_plot["grupo"].map(group_mapping)  # type: ignore[reportArgumentType]
     df_plot["plot_value"] = df_plot["percentage"] * df_plot["position"]
@@ -41,10 +41,7 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
     # create color categories for consistent coloring
     df_plot["color_category"] = df_plot["source"] + "_" + df_plot["grupo"]
 
-    # define color scheme using 4 distinct colors: blue, orange, red, yellow
-    # ZASCA: blue, orange, red, yellow
-    # SISBÉN Nacional: blue, orange, red, yellow
-    # Otros programas: orange (Vulnerable), yellow (No vulnerable)
+    # define color scheme using 4 distinct colors
     color_scale = alt.Scale(
         domain=[
             "ZASCA_A",
@@ -101,7 +98,6 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
         )
     )
 
-    # add text labels for percentages - simple centering within each bar segment
     df_labels = df_plot.copy()
 
     # for each source, calculate text positions
@@ -115,28 +111,26 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
         right_groups = source_data[source_data["position"] == 1].copy()
 
         # position left side groups (A, B, C, Vulnerable)
-        if not left_groups.empty:
-            group_order = {"A": 1, "B": 2, "C": 3, "Vulnerable": 4}
-            left_groups["group_order"] = left_groups["grupo"].map(group_order)  # type: ignore[reportArgumentType]
-            left_groups = left_groups.sort_values("group_order")
+        group_order = {"A": 1, "B": 2, "C": 3, "Vulnerable": 4}
+        left_groups["group_order"] = left_groups["grupo"].map(group_order)  # type: ignore[reportArgumentType]
+        left_groups = left_groups.sort_values("group_order")
 
-            # calculate cumulative positions from right to left
-            cumulative = 0
-            for idx, row in left_groups.iterrows():
-                cumulative += row["percentage"]
-                left_groups.loc[idx, "text_x"] = -(cumulative - row["percentage"] / 2)
+        # calculate cumulative positions from right to left
+        cumulative = 0
+        for idx, row in left_groups.iterrows():
+            cumulative += row["percentage"]
+            left_groups.loc[idx, "text_x"] = -(cumulative - row["percentage"] / 2)
 
         # position right side groups (D, No vulnerable)
-        if not right_groups.empty:
-            group_order = {"D": 1, "No vulnerable": 2}
-            right_groups["group_order"] = right_groups["grupo"].map(group_order)  # type: ignore[reportArgumentType]
-            right_groups = right_groups.sort_values("group_order")
+        group_order = {"D": 1, "No vulnerable": 2}
+        right_groups["group_order"] = right_groups["grupo"].map(group_order)  # type: ignore[reportArgumentType]
+        right_groups = right_groups.sort_values("group_order")
 
-            # calculate cumulative positions from left to right
-            cumulative = 0
-            for idx, row in right_groups.iterrows():
-                right_groups.loc[idx, "text_x"] = cumulative + row["percentage"] / 2
-                cumulative += row["percentage"]
+        # calculate cumulative positions from left to right
+        cumulative = 0
+        for idx, row in right_groups.iterrows():
+            right_groups.loc[idx, "text_x"] = cumulative + row["percentage"] / 2
+            cumulative += row["percentage"]
 
         # update the main dataframe
         if not left_groups.empty:
