@@ -8,6 +8,7 @@ import pandas as pd
 from innpulsa.settings import DATA_DIR
 from plots.mirror_histogram import plot_mirror_histogram_with_excess
 from plots.marimekko_chart import plot_marimekko_gender_comparison
+from plots.sisben_groups import plot_sisben_groups_diverging
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.plot_mirror_histogram")
 
@@ -37,3 +38,13 @@ if __name__ == "__main__":
     marimekko_chart.save(str(output_dir / "gender_distribution_marimekko.png"), scale_factor=2.0, ppi=300)
 
     logger.info("saved Marimekko chart to %s", output_dir / "gender_distribution_marimekko.png")
+
+    # create and save Sisbén groups diverging chart
+    logger.info("creating Sisbén groups diverging chart")
+    df_sisben = pd.read_csv(processed_dir / "sisben_groups.csv", encoding="utf-8-sig")
+    sisben_chart = plot_sisben_groups_diverging(df_sisben)
+
+    # save Sisbén groups chart as png
+    sisben_chart.save(str(output_dir / "sisben_groups_diverging.png"), scale_factor=2.0, ppi=300)
+
+    logger.info("saved Sisbén groups chart to %s", output_dir / "sisben_groups_diverging.png")

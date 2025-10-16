@@ -6,6 +6,8 @@ import pandas as pd
 from innpulsa.settings import DATA_DIR
 from data_processing.age_distribution import diferencias_de_edad
 from data_processing.gender_distribution import diferencias_de_genero
+from data_processing.household_head import porcentaje_jefa_hogar
+from data_processing.sisben_groups import proporciones_grupos_sisben
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.create_plot_data")
 
@@ -34,6 +36,7 @@ if __name__ == "__main__":
     df_personal_ocupado = pd.read_csv(
         Path(DATA_DIR) / "01_raw" / "descriptive" / "personal_ocupado.csv", encoding="utf-8-sig"
     )
+    df_sisben = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "sisben.csv", encoding="utf-8-sig")
 
     logger.info("creating age distribution data for manufacturing sector")
     age_data = diferencias_de_edad(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
@@ -42,3 +45,11 @@ if __name__ == "__main__":
     logger.info("creating gender distribution data for manufacturing sector")
     gender_data = diferencias_de_genero(df_zasca, df_personal_ocupado, filtro_por_sector=SECTOR)
     save_processed_data(gender_data, "gender_distribution.csv", SECTOR)
+
+    logger.info("creating household head data for manufacturing sector")
+    household_data = porcentaje_jefa_hogar(df_zasca, filtro_por_sector=SECTOR)
+    save_processed_data(household_data, "household_head.csv", SECTOR)
+
+    logger.info("creating sisben group data for manufacturing sector")
+    sisben_data = proporciones_grupos_sisben(df_zasca, df_sisben, filtro_por_sector=SECTOR)
+    save_processed_data(sisben_data, "sisben_groups.csv", SECTOR)

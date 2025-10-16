@@ -1,5 +1,9 @@
+import logging
+
 from functools import wraps
 import pandas as pd
+
+logger = logging.getLogger("innpulsa.scripts.descriptive.data_processing.utils")
 
 GROUPO_SECTOR = {
     "manufactura": 3,
@@ -7,6 +11,7 @@ GROUPO_SECTOR = {
 }
 
 MICRO_EMPRESA_THRESHOLD = 10
+TUPLE_SIZE = 2
 
 
 def _filter_by_sector(df: pd.DataFrame, sector: str) -> pd.DataFrame:
@@ -30,10 +35,14 @@ def apply_sector_filter(func):
         filtro_por_sector = kwargs.pop("filtro_por_sector", None)
 
         # filter both zasca and emicron data before applying function
-        if filtro_por_sector and len(args) >= 2:
+        if filtro_por_sector and len(args) >= TUPLE_SIZE:
             df_zasca, df_emicron = args[0], args[1]
             df_zasca = _filter_by_sector(df_zasca, filtro_por_sector)
-            df_emicron = _filter_by_sector(df_emicron, filtro_por_sector)
+            try:
+                df_emicron = _filter_by_sector(df_emicron, filtro_por_sector)
+            except Exception as e:  # noqa: BLE001
+                logger.warning("Error filtering emicron data for sector %s: %s", filtro_por_sector, e)
+                pass
             args = (df_zasca, df_emicron, *args[2:])
 
         # apply function

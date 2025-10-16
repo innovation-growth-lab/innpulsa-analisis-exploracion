@@ -21,11 +21,11 @@ def plot_mirror_histogram_with_excess(df_plot: pd.DataFrame) -> alt.LayerChart:
         an altair chart object.
 
     """
-    # define a colour scheme with dark (common) and light (excess) shades.
+    # define a colour scheme with team colors
     color_scale = alt.Scale(
         domain=["ZASCA_common", "ZASCA_ZASCA", "EMICRON_common", "EMICRON_EMICRON"],
-        range=["#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78"],
-        #      [dark blue, light blue, dark orange, light orange]
+        range=["#00B2A2", "#66D1C7", "#FF5836", "#FFAC9B"],
+        #      [green, green 60, red, red 60]
     )
 
     # create base chart
@@ -56,7 +56,7 @@ def plot_mirror_histogram_with_excess(df_plot: pd.DataFrame) -> alt.LayerChart:
     df_totals["total_value"] = df_totals["plot_value"]
     df_totals["abs_value"] = df_totals["total_value"].abs()
     df_totals["x_offset"] = df_totals["total_value"] + 3 * df_totals["total_value"].apply(lambda x: -1 if x < 0 else 1)
-    df_totals["text_label"] = df_totals["abs_value"].astype(int).astype(str) + "%"
+    df_totals["text_label"] = df_totals["abs_value"].round(0).astype(int).astype(str) + "%"
 
     # add text labels showing total percentages
     text_chart = (

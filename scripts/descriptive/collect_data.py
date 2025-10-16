@@ -63,6 +63,10 @@ def merge_2024_emicron() -> tuple[pd.DataFrame, pd.DataFrame]:
     personal_ocupado = personal_ocupado.drop(columns=["CLASE_TE", "COD_DEPTO", "AREA", "F_EXP"], errors="ignore").merge(
         emicron_2024, on=["DIRECTORIO", "SECUENCIA_P", "SECUENCIA_ENCUESTA"], how="left"
     )
+
+    # filter departamentos to match zasca ones
+    personal_ocupado = personal_ocupado.loc[personal_ocupado["COD_DEPTO"].isin(DEP_CODIGO.values())]
+    emicron_2024 = emicron_2024.loc[emicron_2024["COD_DEPTO"].isin(DEP_CODIGO.values())]
     return emicron_2024, personal_ocupado
 
 
@@ -84,6 +88,36 @@ def harmonise_zasca() -> pd.DataFrame:
     return df_zasca
 
 
+def load_sisben_data() -> pd.DataFrame:
+    """Load and filter Sisbén data for relevant departments and columns.
+
+    Returns:
+        pd.DataFrame: Filtered Sisbén data with relevant columns only
+
+    """
+    # define relevant columns to load (reducing file size)
+    relevant_columns: list[str] = [
+        "cod_mpio",
+        "Grupo",
+        "FEX",
+    ]
+
+    # load sisben data with only relevant columns
+    sisben_path = Path(DATA_DIR) / "innpulsa_raw" / "10_Insumos evaluación impacto" / "SISBEN" / "sisben.csv"
+    df_sisben = pd.read_csv(sisben_path, usecols=relevant_columns, encoding="utf-8-sig", low_memory=False)  # type: ignore[reportArgumentType]
+
+    # filter to relevant departments (first 2 digits of cod_mpio)
+    # extract department codes from municipal codes
+    df_sisben["COD_DEPTO"] = df_sisben["cod_mpio"].astype(str).str[:2].astype(int)
+
+    # filter to departments that match our analysis
+    df_sisben = df_sisben.loc[df_sisben["COD_DEPTO"].isin(DEP_CODIGO.values())]
+
+    logger.info("loaded Sisbén data with %d records for relevant departments", len(df_sisben))
+
+    return df_sisben
+
+
 if __name__ == "__main__":
     output_dir = Path(DATA_DIR) / "01_raw" / "descriptive"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -100,3 +134,9 @@ if __name__ == "__main__":
 
     # save to 01_raw_data/zasca.csv
     df_zasca.to_csv(output_dir / "zasca.csv", encoding="utf-8-sig", index=False)
+
+    # load sisben data
+    df_sisben = load_sisben_data()
+
+    # save to 01_raw_data/sisben.csv
+    df_sisben.to_csv(output_dir / "sisben.csv", encoding="utf-8-sig", index=False)
