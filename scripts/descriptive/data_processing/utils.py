@@ -8,6 +8,7 @@ GROUPO_SECTOR = {
 
 MICRO_EMPRESA_THRESHOLD = 10
 
+
 def _filter_by_sector(df: pd.DataFrame, sector: str) -> pd.DataFrame:
     return df.loc[df["GRUPOS12"] == GROUPO_SECTOR[sector]]
 
@@ -28,14 +29,14 @@ def apply_sector_filter(func):
         # extract filtro_por_sector from kwargs
         filtro_por_sector = kwargs.pop("filtro_por_sector", None)
 
-        # filter emicron data before applying function
+        # filter both zasca and emicron data before applying function
         if filtro_por_sector and len(args) >= 2:
             df_zasca, df_emicron = args[0], args[1]
+            df_zasca = _filter_by_sector(df_zasca, filtro_por_sector)
             df_emicron = _filter_by_sector(df_emicron, filtro_por_sector)
             args = (df_zasca, df_emicron, *args[2:])
 
         # apply function
-        result = func(*args, **kwargs)
-        return result
+        return func(*args, **kwargs)
 
     return wrapper

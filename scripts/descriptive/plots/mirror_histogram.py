@@ -71,7 +71,6 @@ def plot_mirror_histogram_with_excess(df_plot: pd.DataFrame) -> alt.LayerChart:
     # combine chart and text
     chart += text_chart
 
-    # apply configuration to remove frame and axis lines, but keep Y-axis labels
     return (
         chart.configure_view(strokeWidth=0)
         .configure_axis(domain=False, ticks=False, labels=False, grid=False)
