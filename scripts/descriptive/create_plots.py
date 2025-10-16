@@ -9,6 +9,7 @@ from innpulsa.settings import DATA_DIR
 from plots.mirror_histogram import plot_mirror_histogram_with_excess
 from plots.marimekko_chart import plot_marimekko_gender_comparison
 from plots.sisben_groups import plot_sisben_groups_diverging
+from plots.household_care import plot_household_care_violin
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.plot_mirror_histogram")
 
@@ -48,3 +49,13 @@ if __name__ == "__main__":
     sisben_chart.save(str(output_dir / "sisben_groups_diverging.png"), scale_factor=2.0, ppi=300)
 
     logger.info("saved Sisbén groups chart to %s", output_dir / "sisben_groups_diverging.png")
+
+    # create and save household care violin plot
+    logger.info("creating household care violin plot")
+    df_household_care = pd.read_csv(processed_dir / "household_care.csv", encoding="utf-8-sig")
+    household_care_chart = plot_household_care_violin(df_household_care)
+
+    # save household care chart as png
+    household_care_chart.save(str(output_dir / "household_care_violin.png"), scale_factor=2.0, ppi=300)
+
+    logger.info("saved household care violin plot to %s", output_dir / "household_care_violin.png")

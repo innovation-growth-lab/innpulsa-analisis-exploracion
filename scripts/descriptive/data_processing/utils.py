@@ -41,9 +41,13 @@ def apply_sector_filter(func):
             try:
                 df_emicron = _filter_by_sector(df_emicron, filtro_por_sector)
             except Exception as e:  # noqa: BLE001
-                logger.warning("Error filtering emicron data for sector %s: %s", filtro_por_sector, e)
+                logger.warning("Warning: Failed to filter emicron data for sector %s: %s", filtro_por_sector, e)
                 pass
             args = (df_zasca, df_emicron, *args[2:])
+        else:
+            # assume it's zasca
+            df_zasca = _filter_by_sector(args[0], filtro_por_sector)
+            args = (df_zasca, *args[1:])
 
         # apply function
         return func(*args, **kwargs)
