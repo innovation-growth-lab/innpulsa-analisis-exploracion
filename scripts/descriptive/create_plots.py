@@ -11,6 +11,7 @@ from plots.marimekko_chart import plot_marimekko_gender_comparison
 from plots.sisben_groups import plot_sisben_groups_diverging
 from plots.household_care import plot_household_care_violin
 from plots.department_representation import plot_department_representation_scatter
+from plots.business_age import plot_business_age_raincloud, plot_business_age_raincloud_emicron
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.plot_mirror_histogram")
 
@@ -72,3 +73,19 @@ if __name__ == "__main__":
     logger.info(
         "saved department representation scatter plot to %s", output_dir / "department_representation_scatter.png"
     )
+
+    # create and save business age raincloud plots
+    logger.info("creating business age raincloud plots")
+    df_business_age = pd.read_csv(processed_dir / "business_age.csv", encoding="utf-8-sig")
+
+    # create ZASCA raincloud plot
+    business_age_raincloud_zasca = plot_business_age_raincloud(df_business_age)
+    business_age_raincloud_zasca.save(str(output_dir / "business_age_raincloud_zasca.png"), scale_factor=2.0, ppi=300)
+    logger.info("saved ZASCA business age raincloud plot to %s", output_dir / "business_age_raincloud_zasca.png")
+
+    # create EMICRON raincloud plot
+    business_age_raincloud_emicron = plot_business_age_raincloud_emicron(df_business_age)
+    business_age_raincloud_emicron.save(
+        str(output_dir / "business_age_raincloud_emicron.png"), scale_factor=2.0, ppi=300
+    )
+    logger.info("saved EMICRON business age raincloud plot to %s", output_dir / "business_age_raincloud_emicron.png")

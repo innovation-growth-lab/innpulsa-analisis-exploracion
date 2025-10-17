@@ -10,6 +10,7 @@ from data_processing.household_head import porcentaje_jefa_hogar
 from data_processing.sisben_groups import proporciones_grupos_sisben
 from data_processing.household_care import household_care_data
 from data_processing.department_representation import department_representation_analysis
+from data_processing.business_age import business_age_analysis
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.create_plot_data")
 
@@ -66,3 +67,7 @@ if __name__ == "__main__":
         df_zasca, df_emicron_2024_merged, df_isem, filtro_por_sector=SECTOR
     )
     save_processed_data(dept_analysis, "department_representation.csv", SECTOR)
+
+    logger.info("creating business age analysis for manufacturing sector")
+    business_age_data = business_age_analysis(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
+    save_processed_data(business_age_data, "business_age.csv", SECTOR)
