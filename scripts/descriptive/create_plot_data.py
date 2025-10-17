@@ -11,6 +11,7 @@ from data_processing.sisben_groups import proporciones_grupos_sisben
 from data_processing.household_care import household_care_data
 from data_processing.department_representation import department_representation_analysis
 from data_processing.business_age import business_age_analysis
+from data_processing.sales import sales
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.create_plot_data")
 
@@ -41,6 +42,7 @@ if __name__ == "__main__":
     )
     df_sisben = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "sisben.csv", encoding="utf-8-sig")
     df_isem = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "isem.csv", encoding="utf-8-sig")
+    df_rues = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "rues.csv", encoding="utf-8-sig")
 
     logger.info("creating age distribution data for manufacturing sector")
     age_data = diferencias_de_edad(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
@@ -71,3 +73,7 @@ if __name__ == "__main__":
     logger.info("creating business age analysis for manufacturing sector")
     business_age_data = business_age_analysis(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
     save_processed_data(business_age_data, "business_age.csv", SECTOR)
+
+    logger.info("creating sales analysis for manufacturing sector")
+    sales_data = sales(df_zasca, df_emicron_2024_merged, df_rues, filtro_por_sector=SECTOR)
+    save_processed_data(sales_data, "sales.csv", SECTOR)

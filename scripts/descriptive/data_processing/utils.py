@@ -10,6 +10,18 @@ GROUPO_SECTOR = {
     "agropecuario": 1,
 }
 
+CIIU_MANUFACTURA = [
+    "10",
+    "13",
+    "14",
+    "20",
+    "22",
+    "25",
+    "28",
+    "29",
+    "31",
+]
+
 DEP_CODIGO = {
     "ANTIOQUIA": 5,
     "ATLÁNTICO": 8,
@@ -48,20 +60,23 @@ def apply_sector_filter(func):
         # extract filtro_por_sector from kwargs
         filtro_por_sector = kwargs.pop("filtro_por_sector", None)
 
-        # filter both zasca and other data before applying function
-        if filtro_por_sector and len(args) >= TUPLE_SIZE:
-            df_zasca, df_other = args[0], args[1]
-            df_zasca = _filter_by_sector(df_zasca, filtro_por_sector)
-            try:
-                df_other = _filter_by_sector(df_other, filtro_por_sector)
-            except Exception as e:  # noqa: BLE001
-                other_name = args[1].__class__.__name__
-                logger.warning("Warning: Failed to filter %s data for sector %s: %s", other_name, filtro_por_sector, e)
-            args = (df_zasca, df_other, *args[2:])
-        else:
-            # assume it's zasca
-            df_zasca = _filter_by_sector(args[0], filtro_por_sector)
-            args = (df_zasca, *args[1:])
+        if filtro_por_sector:
+            # iterate through all arguments and apply sector filtering
+            filtered_args = []
+            for i, arg in enumerate(args):
+                if isinstance(arg, pd.DataFrame) and "GRUPOS12" in arg.columns:
+                    try:
+                        filtered_df = _filter_by_sector(arg, filtro_por_sector)
+                        filtered_args.append(filtered_df)
+                        logger.debug("applied sector filter to argument %d", i)
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning(
+                            "Warning: Failed to filter argument %d for sector %s: %s", i, filtro_por_sector, e
+                        )
+                        filtered_args.append(arg)  # keep original if filtering fails
+                else:
+                    filtered_args.append(arg)  # keep non-DataFrame arguments unchanged
+            args = tuple(filtered_args)
 
         # apply function
         return func(*args, **kwargs)

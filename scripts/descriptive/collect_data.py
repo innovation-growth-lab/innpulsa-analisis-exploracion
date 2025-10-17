@@ -4,9 +4,9 @@ import logging
 from pathlib import Path
 import pandas as pd
 
-from innpulsa.loaders import load_zascas
+from innpulsa.loaders import load_zascas, load_rues
 from innpulsa.processing.emicron import read_2024_emicron
-from data_processing.utils import DEP_CODIGO
+from data_processing.utils import DEP_CODIGO, CIIU_MANUFACTURA
 from innpulsa.settings import DATA_DIR
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.load_data")
@@ -102,6 +102,48 @@ def load_sisben_data() -> pd.DataFrame:
     return df_sisben
 
 
+def load_rues_data() -> pd.DataFrame:
+    """Load and filter RUES data for relevant departments and columns.
+
+    Returns:
+        pd.DataFrame: Filtered RUES data with relevant columns only
+
+    """
+    # load rues data
+    df_rues = load_rues()
+
+    # drop if no field21 (zipcode) or "" (empty string)
+    df_rues = df_rues.dropna(subset=["field21"])
+    df_rues = df_rues.loc[df_rues["field21"] != ""]
+
+    # sort by año_renovacion, and then remove duplicate matricula
+    df_rues = df_rues.sort_values("año_renovacion")
+    df_rues = df_rues.drop_duplicates(subset=["matricula"], keep="first")
+
+    # extract department code from field21 (zipcode)
+    df_rues["COD_DEPTO"] = df_rues["field21"].astype(str).str[:2].astype(int)
+
+    # filter to relevant departments using DEP_CODIGO values
+    relevant_dept_codes = list(DEP_CODIGO.values())
+    df_rues = df_rues.loc[df_rues["COD_DEPTO"].isin(relevant_dept_codes)]
+
+    # create GRUPOS12 being int 3 if two first characters of ciiu_principal are in CIIU_MANUFACTURA
+    df_rues["GRUPOS12"] = df_rues["ciiu_principal"].astype(str).str[:2].isin(CIIU_MANUFACTURA).astype(int) * 3
+
+    # keep only relevant columns
+    relevant_columns = ["COD_DEPTO", "ingresos_actividad_ordinaria", "empleados", "source_year"]
+    df_rues = df_rues[relevant_columns]
+
+    # remove duplicates, keeping latest year
+    df_rues = df_rues.sort_values("source_year", ascending=False).drop_duplicates(
+        subset=["COD_DEPTO", "ingresos_actividad_ordinaria", "empleados"], keep="first"
+    )
+
+    logger.info("loaded RUES data with %d records for relevant departments", len(df_rues))
+
+    return df_rues
+
+
 if __name__ == "__main__":
     output_dir = Path(DATA_DIR) / "01_raw" / "descriptive"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -124,3 +166,9 @@ if __name__ == "__main__":
 
     # save to 01_raw_data/sisben.csv
     df_sisben.to_csv(output_dir / "sisben.csv", encoding="utf-8-sig", index=False)
+
+    # load rues data
+    df_rues = load_rues_data()
+
+    # save to 01_raw_data/rues.csv
+    df_rues.to_csv(output_dir / "rues.csv", encoding="utf-8-sig", index=False)
