@@ -58,7 +58,9 @@ def department_representation_analysis(
 
     # add ISEM data
     result_df["isem_score"] = result_df["COD_DEPTO"].map(df_isem.set_index("Código DANE")["Puntaje ISEM"])  # type: ignore[reportArgumentType]
-    result_df["dept_name"] = result_df["COD_DEPTO"].map(df_isem.set_index("Código DANE")["Ciudad/Área Metropolitana"])  # type: ignore[reportArgumentType]
+    result_df["dept_name"] = result_df["COD_DEPTO"].map(
+        df_zasca[["COD_DEPTO", "dpto"]].drop_duplicates().set_index("COD_DEPTO")["dpto"]  # type: ignore[reportArgumentType]
+    ).str.title()
 
     # calculate proportions over shared departments only
     shared_departments = set(zasca_counts.index) & set(emicron_population.index)

@@ -48,15 +48,16 @@ def apply_sector_filter(func):
         # extract filtro_por_sector from kwargs
         filtro_por_sector = kwargs.pop("filtro_por_sector", None)
 
-        # filter both zasca and emicron data before applying function
+        # filter both zasca and other data before applying function
         if filtro_por_sector and len(args) >= TUPLE_SIZE:
-            df_zasca, df_emicron = args[0], args[1]
+            df_zasca, df_other = args[0], args[1]
             df_zasca = _filter_by_sector(df_zasca, filtro_por_sector)
             try:
-                df_emicron = _filter_by_sector(df_emicron, filtro_por_sector)
+                df_other = _filter_by_sector(df_other, filtro_por_sector)
             except Exception as e:  # noqa: BLE001
-                logger.warning("Warning: Failed to filter emicron data for sector %s: %s", filtro_por_sector, e)
-            args = (df_zasca, df_emicron, *args[2:])
+                other_name = args[1].__class__.__name__
+                logger.warning("Warning: Failed to filter %s data for sector %s: %s", other_name, filtro_por_sector, e)
+            args = (df_zasca, df_other, *args[2:])
         else:
             # assume it's zasca
             df_zasca = _filter_by_sector(args[0], filtro_por_sector)
