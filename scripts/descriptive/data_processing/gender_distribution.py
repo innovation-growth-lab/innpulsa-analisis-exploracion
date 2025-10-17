@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from innpulsa.settings import DATA_DIR
-from .utils import apply_sector_filter, MICRO_EMPRESA_THRESHOLD
+from .utils import apply_sector_filter, MICRO_EMPRESA_THRESHOLD, DEP_CODIGO
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.data_processing.gender_distribution")
 
@@ -41,6 +41,10 @@ def diferencias_de_genero(df_zasca: pd.DataFrame, df_emicron_2024_merged: pd.Dat
     zasca_gender_dist["source"] = "ZASCA"
 
     # process emicron gender data
+    df_emicron_2024_merged = df_emicron_2024_merged.loc[
+        df_emicron_2024_merged["COD_DEPTO"].isin(list(DEP_CODIGO.values()))
+    ]
+
     # map emicron gender codes to standard format
     df_emicron_2024_merged["gender_clean"] = df_emicron_2024_merged["P3078"].replace({1: "Masculino", 2: "Femenino"})
 

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from innpulsa.settings import DATA_DIR
-from .utils import apply_sector_filter, MICRO_EMPRESA_THRESHOLD
+from .utils import apply_sector_filter, MICRO_EMPRESA_THRESHOLD, DEP_CODIGO
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.data_processing.age_distribution")
 
@@ -45,6 +45,9 @@ def diferencias_de_edad(df_zasca: pd.DataFrame, df_emicron_2024_merged: pd.DataF
     zasca_dist = df_zasca["age_bin"].value_counts(normalize=True).rename_axis("age_bin").reset_index(name="percentage")
 
     # create age_bins for EMICRON
+    df_emicron_2024_merged = df_emicron_2024_merged.loc[
+        df_emicron_2024_merged["COD_DEPTO"].isin(list(DEP_CODIGO.values()))
+    ]
     df_emicron_2024_merged["age_bin"] = pd.cut(df_emicron_2024_merged["P241"], bins=bins, labels=labels, right=False)
     weighted_counts = df_emicron_2024_merged.groupby("age_bin", observed=True)["F_EXP"].sum()
     emicron_dist = (weighted_counts / weighted_counts.sum()).rename_axis("age_bin").reset_index(name="percentage")

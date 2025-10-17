@@ -9,6 +9,7 @@ from data_processing.gender_distribution import diferencias_de_genero
 from data_processing.household_head import porcentaje_jefa_hogar
 from data_processing.sisben_groups import proporciones_grupos_sisben
 from data_processing.household_care import household_care_data
+from data_processing.department_representation import department_representation_analysis
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.create_plot_data")
 
@@ -38,6 +39,7 @@ if __name__ == "__main__":
         Path(DATA_DIR) / "01_raw" / "descriptive" / "personal_ocupado.csv", encoding="utf-8-sig"
     )
     df_sisben = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "sisben.csv", encoding="utf-8-sig")
+    df_isem = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "isem.csv", encoding="utf-8-sig")
 
     logger.info("creating age distribution data for manufacturing sector")
     age_data = diferencias_de_edad(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
@@ -58,3 +60,9 @@ if __name__ == "__main__":
     logger.info("creating household care data for manufacturing sector")
     household_care_data = household_care_data(df_zasca, filtro_por_sector=SECTOR)
     save_processed_data(household_care_data, "household_care.csv", SECTOR)
+
+    logger.info("creating department representation analysis for manufacturing sector")
+    dept_analysis = department_representation_analysis(
+        df_zasca, df_emicron_2024_merged, df_isem, filtro_por_sector=SECTOR
+    )
+    save_processed_data(dept_analysis, "department_representation.csv", SECTOR)

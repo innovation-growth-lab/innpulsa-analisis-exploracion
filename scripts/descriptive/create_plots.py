@@ -10,6 +10,7 @@ from plots.mirror_histogram import plot_mirror_histogram_with_excess
 from plots.marimekko_chart import plot_marimekko_gender_comparison
 from plots.sisben_groups import plot_sisben_groups_diverging
 from plots.household_care import plot_household_care_violin
+from plots.department_representation import plot_department_representation_scatter
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.plot_mirror_histogram")
 
@@ -59,3 +60,15 @@ if __name__ == "__main__":
     household_care_chart.save(str(output_dir / "household_care_violin.png"), scale_factor=2.0, ppi=300)
 
     logger.info("saved household care violin plot to %s", output_dir / "household_care_violin.png")
+
+    # create and save department representation scatter plot
+    logger.info("creating department representation scatter plot")
+    df_dept = pd.read_csv(processed_dir / "department_representation.csv", encoding="utf-8-sig")
+    dept_chart = plot_department_representation_scatter(df_dept)
+
+    # save department representation chart as png
+    dept_chart.save(str(output_dir / "department_representation_scatter.png"), scale_factor=2.0, ppi=300)
+
+    logger.info(
+        "saved department representation scatter plot to %s", output_dir / "department_representation_scatter.png"
+    )

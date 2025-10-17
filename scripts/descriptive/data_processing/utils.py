@@ -10,6 +10,20 @@ GROUPO_SECTOR = {
     "agropecuario": 1,
 }
 
+DEP_CODIGO = {
+    "ANTIOQUIA": 5,
+    "ATLÁNTICO": 8,
+    "BOGOTÁ, D.C.": 11,
+    "BOLÍVAR": 13,
+    "CALDAS": 17,
+    "CUNDINAMARCA": 25,
+    "LA GUAJIRA": 44,
+    "NORTE DE SANTANDER": 54,
+    "SANTANDER": 68,
+    "VALLE DEL CAUCA": 76,
+}
+
+
 MICRO_EMPRESA_THRESHOLD = 10
 TUPLE_SIZE = 2
 
@@ -42,7 +56,6 @@ def apply_sector_filter(func):
                 df_emicron = _filter_by_sector(df_emicron, filtro_por_sector)
             except Exception as e:  # noqa: BLE001
                 logger.warning("Warning: Failed to filter emicron data for sector %s: %s", filtro_por_sector, e)
-                pass
             args = (df_zasca, df_emicron, *args[2:])
         else:
             # assume it's zasca

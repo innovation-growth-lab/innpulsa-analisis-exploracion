@@ -56,6 +56,7 @@ def proporciones_grupos_sisben(df_zasca: pd.DataFrame, df_sisben: pd.DataFrame) 
 
     # calculate estimated "other support programme" composition
     # 43% D group, 57% for A-C groups combined
+    # https://www.sena.edu.co/es-co/transparencia/pe/evalua_fondo_empren.pdf
     other_support = pd.DataFrame({
         "grupo": ["Vulnerable", "No vulnerable"],
         "percentage": [0.43, 0.57],

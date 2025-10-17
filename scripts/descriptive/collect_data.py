@@ -6,23 +6,10 @@ import pandas as pd
 
 from innpulsa.loaders import load_zascas
 from innpulsa.processing.emicron import read_2024_emicron
+from data_processing.utils import DEP_CODIGO
 from innpulsa.settings import DATA_DIR
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.load_data")
-
-
-DEP_CODIGO = {
-    "ANTIOQUIA": 5,
-    "ATLÁNTICO": 8,
-    "BOGOTÁ, D.C.": 11,
-    "BOLÍVAR": 13,
-    "CALDAS": 17,
-    "CUNDINAMARCA": 25,
-    "LA GUAJIRA": 44,
-    "NORTE DE SANTANDER": 54,
-    "SANTANDER": 68,
-    "VALLE DEL CAUCA": 76,
-}
 
 
 def merge_2024_emicron() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -64,9 +51,6 @@ def merge_2024_emicron() -> tuple[pd.DataFrame, pd.DataFrame]:
         emicron_2024, on=["DIRECTORIO", "SECUENCIA_P", "SECUENCIA_ENCUESTA"], how="left"
     )
 
-    # filter departamentos to match zasca ones
-    personal_ocupado = personal_ocupado.loc[personal_ocupado["COD_DEPTO"].isin(DEP_CODIGO.values())]
-    emicron_2024 = emicron_2024.loc[emicron_2024["COD_DEPTO"].isin(DEP_CODIGO.values())]
     return emicron_2024, personal_ocupado
 
 
