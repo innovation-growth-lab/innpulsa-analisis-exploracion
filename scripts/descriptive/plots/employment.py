@@ -35,7 +35,7 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
             title="Proporción (%)" if is_last else "",
             scale=alt.Scale(domain=[0, 1]),
             axis=(
-                alt.Axis(format=".0%", tickCount=11, grid=True, labelFontSize=10, titleFontSize=12)
+                alt.Axis(format=".0%", tickCount=11, grid=True, labelFontSize=8, titleFontSize=10)
                 if is_last
                 else alt.Axis(format=".0%", tickCount=11, grid=True, labels=False, ticks=False, title="")
             ),
@@ -43,14 +43,14 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
 
         chart = (
             alt.Chart(category_data)
-            .mark_circle(size=200, stroke="black", strokeWidth=1)
+            .mark_circle(size=600, stroke="black", strokeWidth=1)
             .encode(
                 x=x_config,
                 y=alt.Y(
                     "subcategory:N",
                     title="",
                     sort=alt.SortField("subcategory"),
-                    axis=alt.Axis(labelFontSize=10, titleFontSize=12),
+                    axis=alt.Axis(labelFontSize=8, titleFontSize=10),
                 ),
                 color=alt.Color(
                     "source:N",
@@ -88,28 +88,25 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
             )
         )
 
-        # percent difference labels at the midpoint of each line
-        labels = (
+        # value labels inside each circle for all points
+        value_labels = (
             alt.Chart(category_data)
-            .transform_aggregate(min_x="min(proportion)", max_x="max(proportion)", groupby=["subcategory"])
-            .transform_calculate(mid="(datum.min_x + datum.max_x) / 2", diff="datum.max_x - datum.min_x")
-            .transform_window(rank="rank()", sort=[alt.SortField("subcategory")])
-            .transform_filter("datum.rank == 1")
-            .mark_text(baseline="bottom", dy=3, fontSize=11, color="black")
+            .transform_filter("datum.source != 'RUES'")
+            .mark_text(baseline="middle", align="center", dy=0.5, fontSize=8, color="white", fontWeight="bold")
             .encode(
-                x=alt.X("mid:Q"),
+                x=alt.X("proportion:Q"),
                 y=alt.Y("subcategory:N", axis=None, title=None),
-                text=alt.Text("diff:Q", format=".0%"),
+                text=alt.Text("proportion:Q", format=".0%"),
             )
         )
 
         # layer the charts and apply properties
-        layered_chart = alt.layer(lines, chart, labels)
+        layered_chart = alt.layer(lines, chart, value_labels)
         charts.append(
             layered_chart.properties(
                 width=300,
                 height=50,
-                title=alt.TitleParams(text=f"{category.replace('_', ' ')}", fontSize=12),
+                title=alt.TitleParams(text=f"{category.replace('_', ' ')}", fontSize=10),
             ).resolve_scale(x="shared", y="independent")
         )
 

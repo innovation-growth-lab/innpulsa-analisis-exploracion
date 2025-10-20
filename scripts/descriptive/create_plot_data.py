@@ -13,6 +13,7 @@ from data_processing.department_representation import department_representation_
 from data_processing.business_age import business_age_analysis
 from data_processing.sales import sales
 from data_processing.employment import employment
+from data_processing.reasons import reasons
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.create_plot_data")
 
@@ -82,3 +83,7 @@ if __name__ == "__main__":
     logger.info("creating employment analysis for manufacturing sector")
     employment_data = employment(df_zasca, df_personal_ocupado, df_rues, filtro_por_sector=SECTOR)
     save_processed_data(employment_data, "employment.csv", SECTOR)
+
+    logger.info("creating reasons-for-entrepreneurship data for manufacturing sector")
+    reasons_data = reasons(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
+    save_processed_data(reasons_data, "reasons.csv", SECTOR)

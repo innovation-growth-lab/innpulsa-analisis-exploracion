@@ -14,6 +14,7 @@ from plots.department_representation import plot_department_representation_scatt
 from plots.business_age import plot_business_age_raincloud, plot_business_age_raincloud_emicron
 from plots.sales import plot_sales_raincloud_combined
 from plots.employment import plot_employment_dumbbell_by_category
+from plots.reasons import plot_reasons_butterfly
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.plot_mirror_histogram")
 
@@ -107,7 +108,12 @@ if __name__ == "__main__":
 
     # create employment dumbbell plots by category
     employment_dumbbell_by_category = plot_employment_dumbbell_by_category(df_employment)
-    employment_dumbbell_by_category.save(
-        str(output_dir / "employment_dumbbell.png"), scale_factor=2.0, ppi=300
-    )
+    employment_dumbbell_by_category.save(str(output_dir / "employment_dumbbell.png"), scale_factor=2.0, ppi=300)
     logger.info("saved employment dumbbell by category plot to %s", output_dir / "employment_dumbbell_by_category.png")
+
+    # reasons-for-entrepreneurship butterfly plot
+    logger.info("creating reasons-for-entrepreneurship butterfly plot")
+    df_reasons = pd.read_csv(processed_dir / "reasons.csv", encoding="utf-8-sig")
+    reasons_chart = plot_reasons_butterfly(df_reasons)
+    reasons_chart.save(str(output_dir / "reasons_butterfly.png"), scale_factor=2.0, ppi=300)
+    logger.info("saved reasons butterfly plot to %s", output_dir / "reasons_butterfly.png")
