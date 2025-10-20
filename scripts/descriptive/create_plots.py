@@ -15,6 +15,7 @@ from plots.business_age import plot_business_age_raincloud, plot_business_age_ra
 from plots.sales import plot_sales_raincloud_combined
 from plots.employment import plot_employment_dumbbell_by_category
 from plots.reasons import plot_reasons_butterfly
+from plots.formality import plot_formality_dumbbell_by_indicator
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.plot_mirror_histogram")
 
@@ -117,3 +118,10 @@ if __name__ == "__main__":
     reasons_chart = plot_reasons_butterfly(df_reasons)
     reasons_chart.save(str(output_dir / "reasons_butterfly.png"), scale_factor=2.0, ppi=300)
     logger.info("saved reasons butterfly plot to %s", output_dir / "reasons_butterfly.png")
+
+    # formality indicators dumbbell plots
+    logger.info("creating formality indicators dumbbell plots")
+    df_formality = pd.read_csv(processed_dir / "formality.csv", encoding="utf-8-sig")
+    formality_dumbbell = plot_formality_dumbbell_by_indicator(df_formality)
+    formality_dumbbell.save(str(output_dir / "formality_dumbbell.png"), scale_factor=2.0, ppi=300)
+    logger.info("saved formality dumbbell plot to %s", output_dir / "formality_dumbbell.png")

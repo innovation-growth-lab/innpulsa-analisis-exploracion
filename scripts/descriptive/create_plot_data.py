@@ -14,6 +14,7 @@ from data_processing.business_age import business_age_analysis
 from data_processing.sales import sales
 from data_processing.employment import employment
 from data_processing.reasons import reasons
+from data_processing.formality import formality
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.create_plot_data")
 
@@ -87,3 +88,7 @@ if __name__ == "__main__":
     logger.info("creating reasons-for-entrepreneurship data for manufacturing sector")
     reasons_data = reasons(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
     save_processed_data(reasons_data, "reasons.csv", SECTOR)
+
+    logger.info("creating formality indicators data for manufacturing sector")
+    formality_data = formality(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
+    save_processed_data(formality_data, "formality.csv", SECTOR)

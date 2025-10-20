@@ -1,0 +1,19 @@
+﻿indicator,category,proportion,source
+Registro RUT,Sí,0.6571428571428571,ZASCA
+Registro RUT,No,0.34285714285714286,ZASCA
+Registro RUT,No,0.7585588435336327,EMICRON
+Registro RUT,Sí,0.24144115646636735,EMICRON
+Contabilidad,Registros informales,0.45125348189415043,ZASCA
+Contabilidad,Excel/Software,0.31963788300835655,ZASCA
+Contabilidad,Cuentas en la cabeza,0.10584958217270195,ZASCA
+Contabilidad,Libros contables formales,0.08217270194986072,ZASCA
+Contabilidad,No lleva registros,0.04108635097493036,ZASCA
+Contabilidad,Registros informales,0.16568059192768642,EMICRON
+Contabilidad,Excel/Software,0.11735708594877789,EMICRON
+Contabilidad,Libros contables formales,0.04262739101611414,EMICRON
+Contabilidad,No lleva registros,0.18855810869828377,EMICRON
+Contabilidad,Cuentas en la cabeza,0.48577682240913783,EMICRON
+Acceso a Crédito,No,0.592741935483871,ZASCA
+Acceso a Crédito,Sí,0.40725806451612906,ZASCA
+Acceso a Crédito,No,0.8767778114991032,EMICRON
+Acceso a Crédito,Sí,0.12322218850089682,EMICRON
