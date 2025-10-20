@@ -131,7 +131,13 @@ def load_rues_data() -> pd.DataFrame:
     df_rues["GRUPOS12"] = df_rues["ciiu_principal"].astype(str).str[:2].isin(CIIU_MANUFACTURA).astype(int) * 3
 
     # keep only relevant columns
-    relevant_columns = ["COD_DEPTO", "ingresos_actividad_ordinaria", "empleados", "source_year"]
+    relevant_columns = [
+        "COD_DEPTO",
+        "ingresos_actividad_ordinaria",
+        "empleados",
+        "cantidad_mujeres_empleadas",
+        "source_year",
+    ]
     df_rues = df_rues[relevant_columns]
 
     # remove duplicates, keeping latest year

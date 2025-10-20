@@ -47,6 +47,7 @@ ZASCA_RELEVANT_COLUMNS = [
     "emp_htc",
     "emp_psc",
     "emp_volc",
+    "employees_w",
     "emp_internc",
     "reason2start",
     "rut",

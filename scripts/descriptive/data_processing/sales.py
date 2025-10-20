@@ -78,16 +78,17 @@ def sales(
 
     # create sales categories for discretization
     def categorize_sales(sales):
-        if sales < 10000000:  # < 10M
+        if sales < 10000000:  # noqa: PLR2004
             return "1-10M"
-        elif sales < 50000000:  # < 50M
+        if sales < 50000000:  # noqa: PLR2004
             return "10-50M"
-        elif sales < 200000000:  # < 200M
+        if sales < 200000000:  # noqa: PLR2004
             return "50-200M"
-        elif sales < 1000000000:  # < 1B
+        if sales < 1000000000:  # noqa: PLR2004
             return "200M-1B"
-        else:
+        if sales >= 1000000000:  # noqa: PLR2004
             return "1B+"
+        return "1-10M"
 
     sales_data["sales_category"] = sales_data["sales"].apply(categorize_sales)
 

@@ -12,6 +12,7 @@ from data_processing.household_care import household_care_data
 from data_processing.department_representation import department_representation_analysis
 from data_processing.business_age import business_age_analysis
 from data_processing.sales import sales
+from data_processing.employment import employment
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.create_plot_data")
 
@@ -77,3 +78,7 @@ if __name__ == "__main__":
     logger.info("creating sales analysis for manufacturing sector")
     sales_data = sales(df_zasca, df_emicron_2024_merged, df_rues, filtro_por_sector=SECTOR)
     save_processed_data(sales_data, "sales.csv", SECTOR)
+
+    logger.info("creating employment analysis for manufacturing sector")
+    employment_data = employment(df_zasca, df_personal_ocupado, df_rues, filtro_por_sector=SECTOR)
+    save_processed_data(employment_data, "employment.csv", SECTOR)

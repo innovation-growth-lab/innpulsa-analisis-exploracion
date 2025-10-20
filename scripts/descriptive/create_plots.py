@@ -12,12 +12,8 @@ from plots.sisben_groups import plot_sisben_groups_diverging
 from plots.household_care import plot_household_care_violin
 from plots.department_representation import plot_department_representation_scatter
 from plots.business_age import plot_business_age_raincloud, plot_business_age_raincloud_emicron
-from plots.sales import (
-    plot_sales_raincloud_zasca,
-    plot_sales_raincloud_emicron,
-    plot_sales_raincloud_rues,
-    plot_sales_raincloud_combined,
-)
+from plots.sales import plot_sales_raincloud_combined
+from plots.employment import plot_employment_dumbbell_by_category
 
 logger = logging.getLogger("innpulsa.scripts.descriptive.plot_mirror_histogram")
 
@@ -104,3 +100,14 @@ if __name__ == "__main__":
     sales_raincloud_combined = plot_sales_raincloud_combined(df_sales)
     sales_raincloud_combined.save(str(output_dir / "sales_raincloud.png"), scale_factor=2.0, ppi=300)
     logger.info("saved combined sales raincloud plot to %s", output_dir / "sales_raincloud.png")
+
+    # create and save employment dumbbell plots
+    logger.info("creating employment dumbbell plots")
+    df_employment = pd.read_csv(processed_dir / "employment.csv", encoding="utf-8-sig")
+
+    # create employment dumbbell plots by category
+    employment_dumbbell_by_category = plot_employment_dumbbell_by_category(df_employment)
+    employment_dumbbell_by_category.save(
+        str(output_dir / "employment_dumbbell.png"), scale_factor=2.0, ppi=300
+    )
+    logger.info("saved employment dumbbell by category plot to %s", output_dir / "employment_dumbbell_by_category.png")
