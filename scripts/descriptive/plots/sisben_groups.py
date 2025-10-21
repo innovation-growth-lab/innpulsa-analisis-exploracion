@@ -21,7 +21,7 @@ group_mapping: dict[str, int] = {
 }
 
 
-def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
+def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:  # noqa: PLR0914
     """Create a diverging stacked bar chart for Sisbén groups comparison.
 
     Args:
@@ -40,6 +40,14 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
 
     # create color categories for consistent coloring
     df_plot["color_category"] = df_plot["source"] + "_" + df_plot["grupo"]
+
+    # add order field for proper stacking
+    # for negative (left) bars, higher order renders further from center
+    # so A=3, B=2, C=1 to display as A, B, C from left to right
+    # for positive (right) bars, lower order renders closer to center
+    # so D=1 to display correctly
+    stacking_order: dict[str, int] = {"A": 3, "B": 2, "C": 1, "D": 1, "Vulnerable": 3, "No vulnerable": 1}
+    df_plot["grupo_order"] = df_plot["grupo"].map(stacking_order)  # type: ignore[reportArgumentType]
 
     # define color scheme using 4 distinct colors
     color_scale = alt.Scale(
@@ -85,7 +93,7 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
                 scale=alt.Scale(domain=[-50, 50]),
             ),
             color=alt.Color("color_category:N", scale=color_scale, legend=None),
-            order=alt.Order("grupo:N"),
+            order=alt.Order("grupo_order:Q"),
             tooltip=[
                 alt.Tooltip("source:N", title="Fuente"),
                 alt.Tooltip("grupo:N", title="Grupo"),
@@ -111,15 +119,17 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
         right_groups = source_data[source_data["position"] == 1].copy()
 
         # position left side groups (A, B, C, Vulnerable)
-        group_order = {"A": 1, "B": 2, "C": 3, "Vulnerable": 4}
+        group_order = {"C": 1, "B": 2, "A": 3, "Vulnerable": 4}
         left_groups["group_order"] = left_groups["grupo"].map(group_order)  # type: ignore[reportArgumentType]
         left_groups = left_groups.sort_values("group_order")
 
-        # calculate cumulative positions from right to left
+        # calculate cumulative positions from right to left (at x=0 going negative)
+        # C accumulates first (position closest to 0), then B, then A
         cumulative = 0
         for idx, row in left_groups.iterrows():
             cumulative += row["percentage"]
-            left_groups.loc[idx, "text_x"] = -(cumulative - row["percentage"] / 2)
+            text_x_val = -(cumulative - row["percentage"] / 2)
+            df_labels.loc[idx, "text_x"] = text_x_val
 
         # position right side groups (D, No vulnerable)
         group_order = {"D": 1, "No vulnerable": 2}
@@ -129,20 +139,16 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
         # calculate cumulative positions from left to right
         cumulative = 0
         for idx, row in right_groups.iterrows():
-            right_groups.loc[idx, "text_x"] = cumulative + row["percentage"] / 2
+            text_x_val = cumulative + row["percentage"] / 2
+            df_labels.loc[idx, "text_x"] = text_x_val
             cumulative += row["percentage"]
-
-        # update the main dataframe
-        if not left_groups.empty:
-            df_labels.loc[source_mask & (df_labels["position"] == -1), "text_x"] = left_groups["text_x"].to_numpy()
-        if not right_groups.empty:
-            df_labels.loc[source_mask & (df_labels["position"] == 1), "text_x"] = right_groups["text_x"].to_numpy()
 
     df_labels["text_label"] = df_labels["percentage"].round(1).astype(str) + "%"
 
+    # percentage labels
     text_chart = (
         alt.Chart(df_labels)
-        .mark_text(align="center", baseline="middle", fontSize=16, color="black", dy=5)
+        .mark_text(align="center", baseline="middle", fontSize=16, color="black", dy=10)
         .encode(
             y=alt.Y("source:N", sort=["ZASCA", "SISBÉN Nacional", "Otros programas de apoyo"]),
             x=alt.X("text_x:Q"),
@@ -150,11 +156,27 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:
         )
     )
 
+    # add explicit order for grupos to ensure proper rendering
+    grupo_order_map: dict[str, int] = {"A": 1, "B": 2, "C": 3, "D": 4, "Vulnerable": 5, "No vulnerable": 6}
+    df_labels["grupo_order"] = df_labels["grupo"].map(grupo_order_map)  # type: ignore[reportArgumentType]
+
+    # group letter labels above percentages
+    letter_chart = (
+        alt.Chart(df_labels)
+        .mark_text(align="center", baseline="middle", fontSize=14, color="black", fontWeight="bold", dy=-10)
+        .encode(
+            y=alt.Y("source:N", sort=["ZASCA", "SISBÉN Nacional", "Otros programas de apoyo"]),
+            x=alt.X("text_x:Q"),
+            text=alt.Text("grupo:N"),
+            order=alt.Order("grupo_order:Q"),
+        )
+    )
+
     # add vertical line at x=0 to separate vulnerable from non-vulnerable
     vertical_line = alt.Chart(pd.DataFrame({"x": [0]})).mark_rule(color="black", strokeWidth=2).encode(x=alt.X("x:Q"))
 
-    # combine chart, text, and vertical line
-    combined_chart = chart + text_chart + vertical_line
+    # combine chart, text, letters, and vertical line
+    combined_chart = chart + text_chart + letter_chart + vertical_line
 
     return (
         combined_chart.configure_view(strokeWidth=0)

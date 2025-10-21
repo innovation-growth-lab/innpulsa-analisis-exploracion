@@ -159,7 +159,7 @@ def _map_emicron_credit(value: float | None) -> str | None:
 
 
 @apply_sector_filter
-def formality(df_zasca: pd.DataFrame, df_emicron_2024_merged: pd.DataFrame) -> pd.DataFrame:  # noqa: PLR0914
+def formality(df_zasca: pd.DataFrame, df_emicron_2024_merged: pd.DataFrame) -> pd.DataFrame:  # noqa: PLR0914, PLR0915
     """Create formality indicators dataset for ZASCA and EMICRON.
 
     Processes three indicators: RUT registration, bookkeeping practices, and credit access.
@@ -284,5 +284,52 @@ def formality(df_zasca: pd.DataFrame, df_emicron_2024_merged: pd.DataFrame) -> p
 
     results.extend([zasca_credit, em_credit])
 
-    combined = pd.concat(results, ignore_index=True)
-    return combined.loc[:, ["indicator", "category", "proportion", "source"]]
+    # combine all results
+    base = pd.concat(results, ignore_index=True)
+
+    # compute common and excess for each indicator
+    all_results = []
+    for indicator in base["indicator"].unique():
+        indicator_data = base[base["indicator"] == indicator].copy()
+
+        # pivot to get ZASCA and EMICRON side by side
+        wide = indicator_data.pivot_table(index="category", columns="source", values="proportion", fill_value=0.0)
+
+        # compute common and excess
+        common = wide.min(axis=1)
+        zasca_excess = (wide.get("ZASCA", 0.0) - common).clip(lower=0.0)
+        emicron_excess = (wide.get("EMICRON", 0.0) - common).clip(lower=0.0)
+
+        # create parts dataframe
+        parts = pd.concat([
+            pd.DataFrame({"category": wide.index, "type": "common", "value": common}),
+            pd.DataFrame({"category": wide.index, "type": "ZASCA_excess", "value": zasca_excess}),
+            pd.DataFrame({"category": wide.index, "type": "EMICRON_excess", "value": emicron_excess}),
+        ]).reset_index(drop=True)
+
+        # duplicate common for both sources
+        common_rows = parts.loc[parts["type"] == "common"].copy()
+        common_zasca = common_rows.copy()
+        common_zasca["source"] = "ZASCA"
+        common_emicron = common_rows.copy()
+        common_emicron["source"] = "EMICRON"
+        excess_rows = parts.loc[parts["type"] != "common"].copy()
+        excess_rows["source"] = excess_rows["type"].str.replace("_excess", "", regex=False)
+
+        # combine and add indicator
+        indicator_final = pd.concat([common_zasca, common_emicron, excess_rows], ignore_index=True)
+        indicator_final = indicator_final.loc[indicator_final["value"] > 0].copy()
+        indicator_final["indicator"] = indicator
+
+        # add mirror-ready helpers (scale to percentage for plot)
+        indicator_final["plot_value"] = indicator_final.apply(
+            lambda r: -r["value"] * 100 if r["source"] == "ZASCA" else r["value"] * 100, axis=1
+        )
+        indicator_final["color_category"] = (
+            indicator_final["source"] + "_" + indicator_final["type"].str.replace("_excess", "", regex=False)
+        )
+
+        all_results.append(indicator_final)
+
+    final_df = pd.concat(all_results, ignore_index=True)
+    return final_df.loc[:, ["indicator", "category", "type", "value", "source", "plot_value", "color_category"]]

@@ -51,7 +51,7 @@ def plot_sales_raincloud_zasca(df_plot: pd.DataFrame) -> alt.VConcatChart:
                 scale=alt.Scale(zero=True),
             ),
         )
-        .properties(width=400, height=75)
+        .properties(width=500, height=75)
     )
 
     # text annotations on top of bars
@@ -71,7 +71,7 @@ def plot_sales_raincloud_zasca(df_plot: pd.DataFrame) -> alt.VConcatChart:
             ),
             text="dollar_label:O",
         )
-        .properties(width=400, height=75)
+        .properties(width=500, height=75)
     )
 
     # create numeric categories for jittering
@@ -100,7 +100,7 @@ def plot_sales_raincloud_zasca(df_plot: pd.DataFrame) -> alt.VConcatChart:
         .transform_calculate(
             jitter_y="(random() - 0.5) * 0.4", jittered_category="datum.category_numeric + (random() - 0.5) * 0.8"
         )
-        .properties(width=400, height=20)
+        .properties(width=500, height=20)
     )
 
     # percentage labels at bottom of bars
@@ -121,7 +121,7 @@ def plot_sales_raincloud_zasca(df_plot: pd.DataFrame) -> alt.VConcatChart:
             text="percentage_label:O",
         )
         .transform_calculate(zero="-75")
-        .properties(width=400, height=75)
+        .properties(width=500, height=75)
     )
 
     # combine bars with text labels, percentage labels, and scatter
@@ -168,7 +168,7 @@ def plot_sales_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatChart:
                 scale=alt.Scale(zero=True),
             ),
         )
-        .properties(width=400, height=75)
+        .properties(width=500, height=75)
     )
 
     # text annotations on top of bars
@@ -188,7 +188,7 @@ def plot_sales_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatChart:
             ),
             text="dollar_label:O",
         )
-        .properties(width=400, height=75)
+        .properties(width=500, height=75)
     )
 
     # create numeric categories for jittering
@@ -217,7 +217,7 @@ def plot_sales_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatChart:
         .transform_calculate(
             jitter_y="(random() - 0.5) * 0.4", jittered_category="datum.category_numeric + (random() - 0.5) * 0.8"
         )
-        .properties(width=400, height=20)
+        .properties(width=500, height=20)
     )
 
     # percentage labels at bottom of bars
@@ -238,7 +238,7 @@ def plot_sales_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatChart:
             text="percentage_label:O",
         )
         .transform_calculate(zero="-450")
-        .properties(width=400, height=75)
+        .properties(width=500, height=75)
     )
 
     # combine bars with text labels, percentage labels, and scatter
@@ -288,7 +288,7 @@ def plot_sales_raincloud_rues(df_plot: pd.DataFrame) -> alt.VConcatChart:
                 scale=alt.Scale(zero=True),
             ),
         )
-        .properties(width=400, height=75)
+        .properties(width=500, height=75)
     )
 
     # text annotations on top of bars
@@ -311,7 +311,7 @@ def plot_sales_raincloud_rues(df_plot: pd.DataFrame) -> alt.VConcatChart:
             ),
             text="dollar_label:O",
         )
-        .properties(width=400, height=75)
+        .properties(width=500, height=75)
     )
 
     # create numeric categories for jittering
@@ -340,7 +340,7 @@ def plot_sales_raincloud_rues(df_plot: pd.DataFrame) -> alt.VConcatChart:
         .transform_calculate(
             jitter_y="(random() - 0.5) * 0.4", jittered_category="datum.category_numeric + (random() - 0.5) * 0.8"
         )
-        .properties(width=400, height=20)
+        .properties(width=500, height=20)
     )
 
     # percentage labels at bottom of bars
@@ -364,7 +364,7 @@ def plot_sales_raincloud_rues(df_plot: pd.DataFrame) -> alt.VConcatChart:
             text="percentage_label:O",
         )
         .transform_calculate(zero="-300")
-        .properties(width=400, height=75)
+        .properties(width=500, height=75)
     )
 
     # combine bars with text labels, percentage labels, and scatter

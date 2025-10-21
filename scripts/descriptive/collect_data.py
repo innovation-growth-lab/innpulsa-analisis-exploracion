@@ -116,6 +116,9 @@ def load_rues_data() -> pd.DataFrame:
     df_rues = df_rues.dropna(subset=["field21"])
     df_rues = df_rues.loc[df_rues["field21"] != ""]
 
+    # keep only if empleados =< 9
+    df_rues = df_rues.loc[df_rues["empleados"] <= 9]  # noqa: PLR2004
+
     # sort by año_renovacion, and then remove duplicate matricula
     df_rues = df_rues.sort_values("año_renovacion")
     df_rues = df_rues.drop_duplicates(subset=["matricula"], keep="first")

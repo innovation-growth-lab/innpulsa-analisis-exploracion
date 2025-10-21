@@ -26,7 +26,9 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
     categories = df_plot["category"].unique()
 
     for i, category in enumerate(categories):
-        category_data = df_plot.loc[df_plot["category"] == category]
+        category_data = df_plot.loc[df_plot["category"] == category].copy()
+        # add sort order: RUES (0), EMICRON (1), ZASCA (2) so ZASCA renders on top
+        category_data["source_order"] = category_data["source"].map({"RUES": 0, "EMICRON": 1, "ZASCA": 2})
         is_last = i == len(categories) - 1
 
         # x-axis configuration: show labels only on last chart, keep 10% grid on all
@@ -43,7 +45,7 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
 
         chart = (
             alt.Chart(category_data)
-            .mark_circle(size=600, stroke="black", strokeWidth=1)
+            .mark_circle(size=600, stroke="black", strokeWidth=1, opacity=1)
             .encode(
                 x=x_config,
                 y=alt.Y(
@@ -68,6 +70,7 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
                         columnPadding=60,
                     ),
                 ),
+                order=alt.Order("source_order:Q"),
             )
         )
 
@@ -104,8 +107,8 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
         layered_chart = alt.layer(lines, chart, value_labels)
         charts.append(
             layered_chart.properties(
-                width=300,
-                height=50,
+                width=400,
+                height=75,
                 title=alt.TitleParams(text=f"{category.replace('_', ' ')}", fontSize=10),
             ).resolve_scale(x="shared", y="independent")
         )
