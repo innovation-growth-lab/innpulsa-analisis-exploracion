@@ -107,7 +107,7 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
         layered_chart = alt.layer(lines, chart, value_labels)
         charts.append(
             layered_chart.properties(
-                width=400,
+                width=500,
                 height=75,
                 title=alt.TitleParams(text=f"{category.replace('_', ' ')}", fontSize=10),
             ).resolve_scale(x="shared", y="independent")

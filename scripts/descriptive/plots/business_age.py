@@ -36,7 +36,7 @@ def plot_business_age_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
             x=alt.X(
                 "business_age:Q",
                 axis=None,
-                scale=alt.Scale(domain=[0, 55]),
+                scale=alt.Scale(domain=[0, 50]),
             ),
             y=alt.Y(
                 "density:Q",
@@ -55,7 +55,7 @@ def plot_business_age_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
             x=alt.X(
                 "business_age:Q",
                 axis=None,
-                scale=alt.Scale(domain=[0, 55]),
+                scale=alt.Scale(domain=[0, 50]),
             ),
         )
         .properties(width=400, height=25)
@@ -69,7 +69,7 @@ def plot_business_age_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
             x=alt.X(
                 "business_age:Q",
                 axis=None,
-                scale=alt.Scale(domain=[0, 55]),
+                scale=alt.Scale(domain=[0, 50]),
             ),
             y=alt.Y(
                 "jitter:Q",
@@ -116,7 +116,7 @@ def plot_business_age_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatCha
             x=alt.X(
                 "business_age:Q",
                 axis=None,
-                scale=alt.Scale(domain=[0, 55]),
+                scale=alt.Scale(domain=[0, 50]),
             ),
             y=alt.Y(
                 "density:Q",
@@ -135,7 +135,7 @@ def plot_business_age_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatCha
             x=alt.X(
                 "business_age:Q",
                 axis=None,
-                scale=alt.Scale(domain=[0, 55]),
+                scale=alt.Scale(domain=[0, 50]),
             ),
         )
         .properties(width=400, height=25)
@@ -149,7 +149,7 @@ def plot_business_age_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatCha
             x=alt.X(
                 "business_age:Q",
                 axis=None,
-                scale=alt.Scale(domain=[0, 55]),
+                scale=alt.Scale(domain=[0, 50]),
             ),
             y=alt.Y(
                 "jitter:Q",
@@ -171,11 +171,11 @@ def plot_business_age_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatCha
                 axis=alt.Axis(
                     title="Edad del Negocio (años)",
                     labelFontSize=12,
-                    tickCount=6,
-                    values=[0, 10, 20, 30, 40, 50],
+                    tickCount=5,
+                    values=[0, 10, 20, 30, 40],
                     labelExpr="datum.value + ' años'",
                 ),
-                scale=alt.Scale(domain=[0, 55]),
+                scale=alt.Scale(domain=[0, 50]),
             ),
         )
         .properties(width=400, height=5)

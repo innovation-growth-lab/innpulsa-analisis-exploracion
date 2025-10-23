@@ -65,7 +65,7 @@ def plot_household_care_violin(df_plot: pd.DataFrame) -> alt.LayerChart:
                 scale=alt.Scale(zero=False, domain=[0, 15]),
             ),
         )
-        .properties(width=400, height=400)
+        .properties(width=500, height=400)
     )
 
     # add dots for the actual data points

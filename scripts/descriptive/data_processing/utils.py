@@ -92,6 +92,11 @@ def apply_sector_filter(func):
                 else:
                     filtered_args.append(arg)  # keep non-DataFrame arguments unchanged
             args = tuple(filtered_args)
+            # pass filtro_por_sector to the function if it accepts it
+            import inspect
+            sig = inspect.signature(func)
+            if "filtro_por_sector" in sig.parameters:
+                kwargs["filtro_por_sector"] = filtro_por_sector
 
         # apply function
         return func(*args, **kwargs)

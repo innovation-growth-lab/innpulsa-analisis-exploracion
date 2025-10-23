@@ -47,7 +47,7 @@ def plot_reasons_butterfly(df_plot: pd.DataFrame) -> alt.LayerChart:
             order=alt.Order("type:N", sort="descending"),
         )
         .properties(
-            width=700,
+            width=875,
             height=520,
         )
     )

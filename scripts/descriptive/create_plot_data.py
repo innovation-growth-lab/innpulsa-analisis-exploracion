@@ -77,18 +77,10 @@ if __name__ == "__main__":
     household_care_data = household_care_data(df_zasca, filtro_por_sector=SECTOR_MANUFACTURA)
     save_processed_data(household_care_data, "household_care.csv", SECTOR_MANUFACTURA)
 
-    # Department representation: create for both manufactura and agro
-    logger.info("creating department representation analysis for manufactura sector")
-    dept_analysis_manufactura = department_representation_analysis(
-        df_zasca, df_emicron_2024_merged, df_isem, filtro_por_sector=SECTOR_MANUFACTURA
-    )
-    save_processed_data(dept_analysis_manufactura, "department_representation.csv", SECTOR_MANUFACTURA)
-
-    logger.info("creating department representation analysis for agro sector")
-    dept_analysis_agro = department_representation_analysis(
-        df_zasca, df_emicron_2024_merged, df_isem, filtro_por_sector=SECTOR_AGRO
-    )
-    save_processed_data(dept_analysis_agro, "department_representation.csv", SECTOR_AGRO)
+    # Department representation: create for both sectors combined
+    logger.info("creating department representation analysis for both sectors")
+    dept_analysis = department_representation_analysis(df_zasca, df_isem)
+    save_processed_data(dept_analysis, "department_representation.csv", "all")
 
     logger.info("creating business age analysis for manufactura sector")
     business_age_data = business_age_analysis(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_MANUFACTURA)

@@ -50,8 +50,8 @@ def plot_marimekko_gender_comparison(df_plot: pd.DataFrame) -> alt.LayerChart:
         axis=1,
     )
 
-    # create text with % symbol
-    df_plot["text_with_percent"] = df_plot["percentage"].round(1).astype(str) + "%"
+    # create text with % symbol (rounded to whole numbers)
+    df_plot["text_with_percent"] = df_plot["percentage"].round(0).astype(int).astype(str) + "%"
 
     # define a colour scheme for stacked bars using team colors
     color_scale = alt.Scale(
@@ -88,7 +88,7 @@ def plot_marimekko_gender_comparison(df_plot: pd.DataFrame) -> alt.LayerChart:
             ],
         )
         .properties(
-            width=300,
+            width=375,
             height=400,
         )
     )

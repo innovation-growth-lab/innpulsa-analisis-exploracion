@@ -32,6 +32,10 @@ if __name__ == "__main__":
     output_dir_agro = Path(DATA_DIR) / "03_outputs" / "descriptive" / "agro"
     output_dir_agro.mkdir(parents=True, exist_ok=True)
 
+    processed_dir_all = Path(DATA_DIR) / "02_processed" / "descriptive" / "all"
+    output_dir_all = Path(DATA_DIR) / "03_outputs" / "descriptive" / "all"
+    output_dir_all.mkdir(parents=True, exist_ok=True)
+
     # load processed data
     df_plot = pd.read_csv(processed_dir / "age_distribution.csv", encoding="utf-8-sig")
 
@@ -39,7 +43,7 @@ if __name__ == "__main__":
     chart = plot_mirror_histogram_with_excess(df_plot)
 
     # save as png
-    chart.save(str(output_dir / "age_distribution_mirror_histogram.png"), scale_factor=2.0, ppi=300)
+    chart.save(str(output_dir / "age_distribution_mirror_histogram.png"), scale_factor=3.0, ppi=400)
 
     logger.info("saved mirror histogram to %s", output_dir / "age_distribution_mirror_histogram.png")
 
@@ -49,7 +53,7 @@ if __name__ == "__main__":
     marimekko_chart_agro = plot_marimekko_gender_comparison(df_gender_agro)
 
     # save Marimekko chart as png
-    marimekko_chart_agro.save(str(output_dir_agro / "gender_distribution_marimekko.png"), scale_factor=2.0, ppi=300)
+    marimekko_chart_agro.save(str(output_dir_agro / "gender_distribution_marimekko.png"), scale_factor=3.0, ppi=400)
 
     logger.info("saved Marimekko chart to %s", output_dir_agro / "gender_distribution_marimekko.png")
 
@@ -58,7 +62,7 @@ if __name__ == "__main__":
     marimekko_chart = plot_marimekko_gender_comparison(df_gender)
 
     # save Marimekko chart as png
-    marimekko_chart.save(str(output_dir / "gender_distribution_marimekko.png"), scale_factor=2.0, ppi=300)
+    marimekko_chart.save(str(output_dir / "gender_distribution_marimekko.png"), scale_factor=3.0, ppi=400)
 
     logger.info("saved Marimekko chart to %s", output_dir / "gender_distribution_marimekko.png")
 
@@ -68,7 +72,7 @@ if __name__ == "__main__":
     sisben_chart = plot_sisben_groups_diverging(df_sisben)
 
     # save Sisbén groups chart as png
-    sisben_chart.save(str(output_dir / "sisben_groups_diverging.png"), scale_factor=2.0, ppi=300)
+    sisben_chart.save(str(output_dir / "sisben_groups_diverging.png"), scale_factor=3.0, ppi=400)
 
     logger.info("saved Sisbén groups chart to %s", output_dir / "sisben_groups_diverging.png")
 
@@ -78,26 +82,17 @@ if __name__ == "__main__":
     household_care_chart = plot_household_care_violin(df_household_care)
 
     # save household care chart as png
-    household_care_chart.save(str(output_dir / "household_care_violin.png"), scale_factor=2.0, ppi=300)
+    household_care_chart.save(str(output_dir / "household_care_violin.png"), scale_factor=3.0, ppi=400)
 
     logger.info("saved household care violin plot to %s", output_dir / "household_care_violin.png")
 
-    # create and save department representation scatter plot - manufactura
-    logger.info("creating department representation scatter plot for manufactura sector")
-    df_dept_manufactura = pd.read_csv(processed_dir / "department_representation.csv", encoding="utf-8-sig")
-    dept_chart_manufactura = plot_department_representation_scatter(df_dept_manufactura)
-    dept_chart_manufactura.save(str(output_dir / "department_representation_scatter.png"), scale_factor=2.0, ppi=300)
+    # create and save department representation scatter plot - both sectors side by side
+    logger.info("creating department representation scatter plot for both sectors")
+    df_dept_all = pd.read_csv(processed_dir_all / "department_representation.csv", encoding="utf-8-sig")
+    dept_chart_all = plot_department_representation_scatter(df_dept_all)
+    dept_chart_all.save(str(output_dir_all / "department_representation_scatter.png"), scale_factor=3.0, ppi=400)
     logger.info(
-        "saved department representation scatter plot to %s", output_dir / "department_representation_scatter.png"
-    )
-
-    # create and save department representation scatter plot - agro
-    logger.info("creating department representation scatter plot for agro sector")
-    df_dept_agro = pd.read_csv(processed_dir_agro / "department_representation.csv", encoding="utf-8-sig")
-    dept_chart_agro = plot_department_representation_scatter(df_dept_agro)
-    dept_chart_agro.save(str(output_dir_agro / "department_representation_scatter.png"), scale_factor=2.0, ppi=300)
-    logger.info(
-        "saved department representation scatter plot to %s", output_dir_agro / "department_representation_scatter.png"
+        "saved department representation scatter plot to %s", output_dir_all / "department_representation_scatter.png"
     )
 
     # create and save business age raincloud plots
@@ -106,13 +101,13 @@ if __name__ == "__main__":
 
     # create ZASCA raincloud plot
     business_age_raincloud_zasca = plot_business_age_raincloud(df_business_age)
-    business_age_raincloud_zasca.save(str(output_dir / "business_age_raincloud_zasca.png"), scale_factor=2.0, ppi=300)
+    business_age_raincloud_zasca.save(str(output_dir / "business_age_raincloud_zasca.png"), scale_factor=3.0, ppi=400)
     logger.info("saved ZASCA business age raincloud plot to %s", output_dir / "business_age_raincloud_zasca.png")
 
     # create EMICRON raincloud plot
     business_age_raincloud_emicron = plot_business_age_raincloud_emicron(df_business_age)
     business_age_raincloud_emicron.save(
-        str(output_dir / "business_age_raincloud_emicron.png"), scale_factor=2.0, ppi=300
+        str(output_dir / "business_age_raincloud_emicron.png"), scale_factor=3.0, ppi=400
     )
     logger.info("saved EMICRON business age raincloud plot to %s", output_dir / "business_age_raincloud_emicron.png")
 
@@ -122,7 +117,7 @@ if __name__ == "__main__":
 
     # create combined sales raincloud plot
     sales_raincloud_combined = plot_sales_raincloud_combined(df_sales)
-    sales_raincloud_combined.save(str(output_dir / "sales_raincloud.png"), scale_factor=2.0, ppi=300)
+    sales_raincloud_combined.save(str(output_dir / "sales_raincloud.png"), scale_factor=3.0, ppi=400)
     logger.info("saved combined sales raincloud plot to %s", output_dir / "sales_raincloud.png")
 
     # create and save employment dumbbell plots
@@ -131,19 +126,19 @@ if __name__ == "__main__":
 
     # create employment dumbbell plots by category
     employment_dumbbell_by_category = plot_employment_dumbbell_by_category(df_employment)
-    employment_dumbbell_by_category.save(str(output_dir / "employment_dumbbell.png"), scale_factor=2.0, ppi=300)
+    employment_dumbbell_by_category.save(str(output_dir / "employment_dumbbell.png"), scale_factor=3.0, ppi=400)
     logger.info("saved employment dumbbell by category plot to %s", output_dir / "employment_dumbbell_by_category.png")
 
     # reasons-for-entrepreneurship butterfly plot
     logger.info("creating reasons-for-entrepreneurship butterfly plot")
     df_reasons = pd.read_csv(processed_dir / "reasons.csv", encoding="utf-8-sig")
     reasons_chart = plot_reasons_butterfly(df_reasons)
-    reasons_chart.save(str(output_dir / "reasons_butterfly.png"), scale_factor=2.0, ppi=300)
+    reasons_chart.save(str(output_dir / "reasons_butterfly.png"), scale_factor=3.0, ppi=400)
     logger.info("saved reasons butterfly plot to %s", output_dir / "reasons_butterfly.png")
 
     # formality indicators butterfly plots
     logger.info("creating formality indicators butterfly plots")
     df_formality = pd.read_csv(processed_dir / "formality.csv", encoding="utf-8-sig")
     formality_butterfly = plot_formality_by_indicator(df_formality)
-    formality_butterfly.save(str(output_dir / "formality_butterfly.png"), scale_factor=2.0, ppi=300)
+    formality_butterfly.save(str(output_dir / "formality_butterfly.png"), scale_factor=3.0, ppi=400)
     logger.info("saved formality butterfly plot to %s", output_dir / "formality_butterfly.png")

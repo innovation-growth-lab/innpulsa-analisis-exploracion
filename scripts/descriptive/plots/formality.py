@@ -83,7 +83,7 @@ def plot_formality_by_indicator(df_plot: pd.DataFrame) -> alt.VConcatChart:
         height = 200 if indicator == "Contabilidad" else 70
 
         combined_chart = (chart + text_chart).properties(
-            width=500,
+            width=625,
             height=height,
             title=alt.TitleParams(text=indicator, fontSize=12),
         )

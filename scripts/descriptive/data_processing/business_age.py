@@ -60,6 +60,9 @@ def business_age_analysis(df_zasca: pd.DataFrame, df_emicron_2024_merged: pd.Dat
     current_date = date(2024, 12, 31)  # end of 2024
     df_zasca["business_age"] = df_zasca["start_date"].apply(lambda x: (current_date - x).days / 365.25)
 
+    # drop companies with business age greater than 50 years
+    df_zasca = df_zasca.loc[df_zasca["business_age"] <= 50]  # noqa: PLR2004
+
     # add source identifier
     df_zasca["source"] = "ZASCA"
 

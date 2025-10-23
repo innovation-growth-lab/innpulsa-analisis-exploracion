@@ -46,8 +46,8 @@ def plot_mirror_histogram_with_excess(df_plot: pd.DataFrame) -> alt.LayerChart:
             order=alt.Order("type:N", sort="descending"),
         )
         .properties(
-            width=800,
-            height=650,
+            width=1000,
+            height=550,
         )
     )
 

@@ -101,7 +101,7 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:  # no
             ],
         )
         .properties(
-            width=500,
+            width=625,
             height=500,
         )
     )
