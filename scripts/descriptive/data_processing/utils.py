@@ -7,7 +7,7 @@ logger = logging.getLogger("innpulsa.scripts.descriptive.data_processing.utils")
 
 GROUPO_SECTOR = {
     "manufactura": 3,
-    "agropecuario": 1,
+    "agro": 1,
 }
 
 CIIU_MANUFACTURA = [
@@ -22,16 +22,31 @@ CIIU_MANUFACTURA = [
     "31",
 ]
 
+CIIU_AGRICULTURA = [
+    "01",
+    "02",
+    "03",
+]
+
 DEP_CODIGO = {
     "ANTIOQUIA": 5,
     "ATLÁNTICO": 8,
     "BOGOTÁ, D.C.": 11,
     "BOLÍVAR": 13,
+    "BOYACÁ": 15,
     "CALDAS": 17,
+    "CAQUETÁ": 18,
+    "CAUCA": 19,
     "CUNDINAMARCA": 25,
+    "HUILA": 41,
     "LA GUAJIRA": 44,
+    "MAGDALENA": 47,
+    "NARIÑO": 52,
     "NORTE DE SANTANDER": 54,
+    "QUINDÍO": 63,
+    "RISARALDA": 66,
     "SANTANDER": 68,
+    "TOLIMA": 73,
     "VALLE DEL CAUCA": 76,
 }
 

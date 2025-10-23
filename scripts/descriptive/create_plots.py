@@ -17,27 +17,43 @@ from plots.employment import plot_employment_dumbbell_by_category
 from plots.reasons import plot_reasons_butterfly
 from plots.formality import plot_formality_by_indicator
 
-logger = logging.getLogger("innpulsa.scripts.descriptive.plot_mirror_histogram")
+logger = logging.getLogger("innpulsa.scripts.descriptive.create_plots")
 
 
 if __name__ == "__main__":
     SECTOR = "manufactura"
-    # load processed data
+
+    # Setup all directories
     processed_dir = Path(DATA_DIR) / "02_processed" / "descriptive" / SECTOR
+    output_dir = Path(DATA_DIR) / "03_outputs" / "descriptive" / SECTOR
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    processed_dir_agro = Path(DATA_DIR) / "02_processed" / "descriptive" / "agro"
+    output_dir_agro = Path(DATA_DIR) / "03_outputs" / "descriptive" / "agro"
+    output_dir_agro.mkdir(parents=True, exist_ok=True)
+
+    # load processed data
     df_plot = pd.read_csv(processed_dir / "age_distribution.csv", encoding="utf-8-sig")
 
     # create and save plot
     chart = plot_mirror_histogram_with_excess(df_plot)
 
     # save as png
-    output_dir = Path(DATA_DIR) / "03_outputs" / "descriptive" / SECTOR
-    output_dir.mkdir(parents=True, exist_ok=True)
     chart.save(str(output_dir / "age_distribution_mirror_histogram.png"), scale_factor=2.0, ppi=300)
 
     logger.info("saved mirror histogram to %s", output_dir / "age_distribution_mirror_histogram.png")
 
-    # create and save Marimekko chart for gender distribution
+    # create and save Marimekko chart for gender distribution - agro
     logger.info("creating Marimekko chart for gender distribution")
+    df_gender_agro = pd.read_csv(processed_dir_agro / "gender_distribution.csv", encoding="utf-8-sig")
+    marimekko_chart_agro = plot_marimekko_gender_comparison(df_gender_agro)
+
+    # save Marimekko chart as png
+    marimekko_chart_agro.save(str(output_dir_agro / "gender_distribution_marimekko.png"), scale_factor=2.0, ppi=300)
+
+    logger.info("saved Marimekko chart to %s", output_dir_agro / "gender_distribution_marimekko.png")
+
+    # create and save Marimekko chart for gender distribution - manufactura
     df_gender = pd.read_csv(processed_dir / "gender_distribution.csv", encoding="utf-8-sig")
     marimekko_chart = plot_marimekko_gender_comparison(df_gender)
 
@@ -66,16 +82,22 @@ if __name__ == "__main__":
 
     logger.info("saved household care violin plot to %s", output_dir / "household_care_violin.png")
 
-    # create and save department representation scatter plot
-    logger.info("creating department representation scatter plot")
-    df_dept = pd.read_csv(processed_dir / "department_representation.csv", encoding="utf-8-sig")
-    dept_chart = plot_department_representation_scatter(df_dept)
-
-    # save department representation chart as png
-    dept_chart.save(str(output_dir / "department_representation_scatter.png"), scale_factor=2.0, ppi=300)
-
+    # create and save department representation scatter plot - manufactura
+    logger.info("creating department representation scatter plot for manufactura sector")
+    df_dept_manufactura = pd.read_csv(processed_dir / "department_representation.csv", encoding="utf-8-sig")
+    dept_chart_manufactura = plot_department_representation_scatter(df_dept_manufactura)
+    dept_chart_manufactura.save(str(output_dir / "department_representation_scatter.png"), scale_factor=2.0, ppi=300)
     logger.info(
         "saved department representation scatter plot to %s", output_dir / "department_representation_scatter.png"
+    )
+
+    # create and save department representation scatter plot - agro
+    logger.info("creating department representation scatter plot for agro sector")
+    df_dept_agro = pd.read_csv(processed_dir_agro / "department_representation.csv", encoding="utf-8-sig")
+    dept_chart_agro = plot_department_representation_scatter(df_dept_agro)
+    dept_chart_agro.save(str(output_dir_agro / "department_representation_scatter.png"), scale_factor=2.0, ppi=300)
+    logger.info(
+        "saved department representation scatter plot to %s", output_dir_agro / "department_representation_scatter.png"
     )
 
     # create and save business age raincloud plots

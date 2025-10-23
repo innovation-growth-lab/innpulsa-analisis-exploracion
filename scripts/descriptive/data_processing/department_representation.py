@@ -36,11 +36,11 @@ def department_representation_analysis(
     # calculate zasca counts by department
     zasca_counts = df_zasca["COD_DEPTO"].value_counts()
 
-    # calculate number of unique cohorts per department
-    zasca_cohorts = df_zasca.groupby("COD_DEPTO")["cohort"].nunique()
+    # # calculate number of unique cohorts per department
+    # zasca_cohorts = df_zasca.groupby("COD_DEPTO")["cohort"].nunique()
 
-    # normalize zasca counts by number of cohorts
-    zasca_normalized = zasca_counts / zasca_cohorts
+    # # normalize zasca counts by number of cohorts
+    # zasca_normalized = zasca_counts / zasca_cohorts
 
     # calculate emicron population by department (using expansion factor)
     emicron_population = df_emicron.groupby("COD_DEPTO")["F_EXP"].sum()
@@ -53,8 +53,8 @@ def department_representation_analysis(
 
     # add zasca data
     result_df["zasca_count"] = result_df["COD_DEPTO"].map(zasca_counts).fillna(0)  # type: ignore[reportArgumentType]
-    result_df["zasca_normalized_count"] = result_df["COD_DEPTO"].map(zasca_normalized).fillna(0)  # type: ignore[reportArgumentType]
-    result_df["num_cohorts"] = result_df["COD_DEPTO"].map(zasca_cohorts).fillna(1)  # type: ignore[reportArgumentType]
+    # result_df["zasca_normalized_count"] = result_df["COD_DEPTO"].map(zasca_normalized).fillna(0)  # type: ignore[reportArgumentType]
+    # result_df["num_cohorts"] = result_df["COD_DEPTO"].map(zasca_cohorts).fillna(1)  # type: ignore[reportArgumentType]
 
     # add ISEM data
     result_df["isem_score"] = result_df["COD_DEPTO"].map(df_isem.set_index("Código DANE")["Puntaje ISEM"])  # type: ignore[reportArgumentType]
@@ -66,10 +66,12 @@ def department_representation_analysis(
     shared_departments = set(zasca_counts.index) & set(emicron_population.index)
 
     # calculate totals for shared departments only
-    total_zasca_shared = zasca_normalized[zasca_normalized.index.isin(shared_departments)].sum()
+    # total_zasca_shared = zasca_normalized[zasca_normalized.index.isin(shared_departments)].sum()
+    total_zasca_shared = zasca_counts[zasca_counts.index.isin(shared_departments)].sum()
     total_emicron_shared = emicron_population[emicron_population.index.isin(shared_departments)].sum()
 
-    result_df["zasca_proportion_codigo"] = (result_df["zasca_normalized_count"] / total_zasca_shared * 100).fillna(0)
+    # result_df["zasca_proportion_codigo"] = (result_df["zasca_normalized_count"] / total_zasca_shared * 100).fillna(0)
+    result_df["zasca_proportion_codigo"] = (result_df["zasca_count"] / total_zasca_shared * 100).fillna(0)
     result_df["emicron_proportion_codigo"] = (result_df["emicron_population"] / total_emicron_shared * 100).fillna(0)
 
     # calculate representation ratio only for departments with ZASCA data
@@ -89,6 +91,9 @@ def department_representation_analysis(
         else "no_zasca_data",
         axis=1,
     )
+
+    # drop any nan isem_score
+    result_df = result_df.dropna(subset=["isem_score"])
 
     return result_df.sort_values("representation_ratio", ascending=False)
 

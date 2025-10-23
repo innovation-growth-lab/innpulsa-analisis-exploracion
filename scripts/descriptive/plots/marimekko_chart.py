@@ -26,7 +26,7 @@ def plot_marimekko_gender_comparison(df_plot: pd.DataFrame) -> alt.LayerChart:
     """
     # create color category for stacked bars
     df_plot = df_plot.copy()
-    df_plot = df_plot.loc[df_plot["gender"] != "No binario"]
+    df_plot = df_plot.loc[~df_plot["gender"].isin(["No binario", "Otro"])]
     df_plot["color_category"] = df_plot["source"] + "_" + df_plot["gender"]
 
     # sort to ensure ZASCA comes first (left), then EMICRON (right)

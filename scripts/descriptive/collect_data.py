@@ -66,9 +66,6 @@ def harmonise_zasca() -> pd.DataFrame:
     # map departamento to codigo
     df_zasca["COD_DEPTO"] = df_zasca["dpto"].replace(DEP_CODIGO)
 
-    # add manufacturing sector code to match EMICRON filtering
-    df_zasca["GRUPOS12"] = 3  # manufacturing sector code
-
     return df_zasca
 
 

@@ -35,7 +35,11 @@ def save_processed_data(data: pd.DataFrame, filename: str, sector: str) -> None:
 
 
 if __name__ == "__main__":
-    SECTOR = "manufactura"
+    SECTOR_MANUFACTURA = "manufactura"
+    SECTOR_AGRO = "agro"
+
+    logger.info("processing descriptive data")
+
     df_zasca = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "zasca.csv", encoding="utf-8-sig")
     df_emicron_2024_merged = pd.read_csv(
         Path(DATA_DIR) / "01_raw" / "descriptive" / "emicron_2024_merged.csv", encoding="utf-8-sig"
@@ -47,48 +51,61 @@ if __name__ == "__main__":
     df_isem = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "isem.csv", encoding="utf-8-sig")
     df_rues = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "rues.csv", encoding="utf-8-sig")
 
-    logger.info("creating age distribution data for manufacturing sector")
-    age_data = diferencias_de_edad(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
-    save_processed_data(age_data, "age_distribution.csv", SECTOR)
+    # Most analyses: manufactura only
+    logger.info("creating age distribution data for manufactura sector")
+    age_data = diferencias_de_edad(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(age_data, "age_distribution.csv", SECTOR_MANUFACTURA)
 
-    logger.info("creating gender distribution data for manufacturing sector")
-    gender_data = diferencias_de_genero(df_zasca, df_personal_ocupado, filtro_por_sector=SECTOR)
-    save_processed_data(gender_data, "gender_distribution.csv", SECTOR)
+    # Gender distribution: save for both manufactura and agro
+    logger.info("creating gender distribution data for manufactura sector")
+    gender_data_manufactura = diferencias_de_genero(df_zasca, df_personal_ocupado, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(gender_data_manufactura, "gender_distribution.csv", SECTOR_MANUFACTURA)
 
-    logger.info("creating household head data for manufacturing sector")
-    household_data = porcentaje_jefa_hogar(df_zasca, filtro_por_sector=SECTOR)
-    save_processed_data(household_data, "household_head.csv", SECTOR)
+    logger.info("creating gender distribution data for agro sector")
+    gender_data_agro = diferencias_de_genero(df_zasca, df_personal_ocupado, filtro_por_sector=SECTOR_AGRO)
+    save_processed_data(gender_data_agro, "gender_distribution.csv", SECTOR_AGRO)
 
-    logger.info("creating sisben group data for manufacturing sector")
-    sisben_data = proporciones_grupos_sisben(df_zasca, df_sisben, filtro_por_sector=SECTOR)
-    save_processed_data(sisben_data, "sisben_groups.csv", SECTOR)
+    logger.info("creating household head data for manufactura sector")
+    household_data = porcentaje_jefa_hogar(df_zasca, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(household_data, "household_head.csv", SECTOR_MANUFACTURA)
 
-    logger.info("creating household care data for manufacturing sector")
-    household_care_data = household_care_data(df_zasca, filtro_por_sector=SECTOR)
-    save_processed_data(household_care_data, "household_care.csv", SECTOR)
+    logger.info("creating sisben group data for manufactura sector")
+    sisben_data = proporciones_grupos_sisben(df_zasca, df_sisben, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(sisben_data, "sisben_groups.csv", SECTOR_MANUFACTURA)
 
-    logger.info("creating department representation analysis for manufacturing sector")
-    dept_analysis = department_representation_analysis(
-        df_zasca, df_emicron_2024_merged, df_isem, filtro_por_sector=SECTOR
+    logger.info("creating household care data for manufactura sector")
+    household_care_data = household_care_data(df_zasca, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(household_care_data, "household_care.csv", SECTOR_MANUFACTURA)
+
+    # Department representation: create for both manufactura and agro
+    logger.info("creating department representation analysis for manufactura sector")
+    dept_analysis_manufactura = department_representation_analysis(
+        df_zasca, df_emicron_2024_merged, df_isem, filtro_por_sector=SECTOR_MANUFACTURA
     )
-    save_processed_data(dept_analysis, "department_representation.csv", SECTOR)
+    save_processed_data(dept_analysis_manufactura, "department_representation.csv", SECTOR_MANUFACTURA)
 
-    logger.info("creating business age analysis for manufacturing sector")
-    business_age_data = business_age_analysis(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
-    save_processed_data(business_age_data, "business_age.csv", SECTOR)
+    logger.info("creating department representation analysis for agro sector")
+    dept_analysis_agro = department_representation_analysis(
+        df_zasca, df_emicron_2024_merged, df_isem, filtro_por_sector=SECTOR_AGRO
+    )
+    save_processed_data(dept_analysis_agro, "department_representation.csv", SECTOR_AGRO)
 
-    logger.info("creating sales analysis for manufacturing sector")
-    sales_data = sales(df_zasca, df_emicron_2024_merged, df_rues, filtro_por_sector=SECTOR)
-    save_processed_data(sales_data, "sales.csv", SECTOR)
+    logger.info("creating business age analysis for manufactura sector")
+    business_age_data = business_age_analysis(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(business_age_data, "business_age.csv", SECTOR_MANUFACTURA)
 
-    logger.info("creating employment analysis for manufacturing sector")
-    employment_data = employment(df_zasca, df_personal_ocupado, df_rues, filtro_por_sector=SECTOR)
-    save_processed_data(employment_data, "employment.csv", SECTOR)
+    logger.info("creating sales analysis for manufactura sector")
+    sales_data = sales(df_zasca, df_emicron_2024_merged, df_rues, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(sales_data, "sales.csv", SECTOR_MANUFACTURA)
 
-    logger.info("creating reasons-for-entrepreneurship data for manufacturing sector")
-    reasons_data = reasons(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
-    save_processed_data(reasons_data, "reasons.csv", SECTOR)
+    logger.info("creating employment analysis for manufactura sector")
+    employment_data = employment(df_zasca, df_personal_ocupado, df_rues, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(employment_data, "employment.csv", SECTOR_MANUFACTURA)
 
-    logger.info("creating formality indicators data for manufacturing sector")
-    formality_data = formality(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR)
-    save_processed_data(formality_data, "formality.csv", SECTOR)
+    logger.info("creating reasons-for-entrepreneurship data for manufactura sector")
+    reasons_data = reasons(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(reasons_data, "reasons.csv", SECTOR_MANUFACTURA)
+
+    logger.info("creating formality indicators data for manufactura sector")
+    formality_data = formality(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_MANUFACTURA)
+    save_processed_data(formality_data, "formality.csv", SECTOR_MANUFACTURA)

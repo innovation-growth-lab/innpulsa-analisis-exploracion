@@ -52,7 +52,7 @@ def business_age_analysis(df_zasca: pd.DataFrame, df_emicron_2024_merged: pd.Dat
         # create random month (1-12) and day (1-28 to avoid month-end issues)
         month = rng.integers(1, 13)
         day = rng.integers(1, 29)
-        return date(year, month, day)
+        return date(int(year), month, day)
 
     df_zasca["start_date"] = df_zasca["yearsales"].apply(create_random_date_in_year)
 
