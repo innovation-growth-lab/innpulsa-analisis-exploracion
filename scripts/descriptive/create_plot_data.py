@@ -8,7 +8,6 @@ from data_processing.age_distribution import diferencias_de_edad
 from data_processing.gender_distribution import diferencias_de_genero
 from data_processing.household_head import porcentaje_jefa_hogar
 from data_processing.sisben_groups import proporciones_grupos_sisben
-from data_processing.household_care import household_care_data
 from data_processing.department_representation import department_representation_analysis
 from data_processing.business_age import business_age_analysis
 from data_processing.sales import sales
@@ -51,6 +50,11 @@ if __name__ == "__main__":
     df_isem = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "isem.csv", encoding="utf-8-sig")
     df_rues = pd.read_csv(Path(DATA_DIR) / "01_raw" / "descriptive" / "rues.csv", encoding="utf-8-sig")
 
+    # age distribution: save for both manufactura and agro
+    logger.info("creating age distribution data for manufactura sector")
+    age_data = diferencias_de_edad(df_zasca, df_emicron_2024_merged)
+    save_processed_data(age_data, "age_distribution.csv", "all")
+
     # Most analyses: manufactura only
     logger.info("creating age distribution data for manufactura sector")
     age_data = diferencias_de_edad(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_MANUFACTURA)
@@ -72,10 +76,6 @@ if __name__ == "__main__":
     logger.info("creating sisben group data for manufactura sector")
     sisben_data = proporciones_grupos_sisben(df_zasca, df_sisben, filtro_por_sector=SECTOR_MANUFACTURA)
     save_processed_data(sisben_data, "sisben_groups.csv", SECTOR_MANUFACTURA)
-
-    logger.info("creating household care data for manufactura sector")
-    household_care_data = household_care_data(df_zasca, filtro_por_sector=SECTOR_MANUFACTURA)
-    save_processed_data(household_care_data, "household_care.csv", SECTOR_MANUFACTURA)
 
     # Department representation: create for both sectors combined
     logger.info("creating department representation analysis for both sectors")
@@ -101,3 +101,33 @@ if __name__ == "__main__":
     logger.info("creating formality indicators data for manufactura sector")
     formality_data = formality(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_MANUFACTURA)
     save_processed_data(formality_data, "formality.csv", SECTOR_MANUFACTURA)
+
+    # Agro sector analyses - only for columns that are available
+    logger.info("creating age distribution data for agro sector")
+    age_data_agro = diferencias_de_edad(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_AGRO)
+    save_processed_data(age_data_agro, "age_distribution.csv", SECTOR_AGRO)
+
+    logger.info("creating business age analysis for agro sector")
+    business_age_data_agro = business_age_analysis(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_AGRO)
+    save_processed_data(business_age_data_agro, "business_age.csv", SECTOR_AGRO)
+
+    logger.info("creating sales analysis for agro sector")
+    sales_data_agro = sales(df_zasca, df_emicron_2024_merged, df_rues, filtro_por_sector=SECTOR_AGRO)
+    save_processed_data(sales_data_agro, "sales.csv", SECTOR_AGRO)
+
+    logger.info("creating employment analysis for agro sector")
+    employment_data_agro = employment(df_zasca, df_personal_ocupado, df_rues, filtro_por_sector=SECTOR_AGRO)
+    save_processed_data(employment_data_agro, "employment.csv", SECTOR_AGRO)
+
+    logger.info("creating reasons-for-entrepreneurship data for agro sector")
+    reasons_data_agro = reasons(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_AGRO)
+    save_processed_data(reasons_data_agro, "reasons.csv", SECTOR_AGRO)
+
+    logger.info("creating formality indicators data for agro sector")
+    formality_data_agro = formality(df_zasca, df_emicron_2024_merged, filtro_por_sector=SECTOR_AGRO)
+    save_processed_data(formality_data_agro, "formality.csv", SECTOR_AGRO)
+
+    # Formality indicators: create for all sectors combined
+    logger.info("creating formality indicators data for all sectors combined")
+    formality_data_all = formality(df_zasca, df_emicron_2024_merged)
+    save_processed_data(formality_data_all, "formality.csv", "all")

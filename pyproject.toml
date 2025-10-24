@@ -17,6 +17,7 @@ dependencies = [
     "pydeck",
     "streamlit",
     "plotly",
+    "openpyxl",
 ]
 
 [tool.setuptools.packages.find]

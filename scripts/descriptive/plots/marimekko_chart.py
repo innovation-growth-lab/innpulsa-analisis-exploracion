@@ -35,6 +35,9 @@ def plot_marimekko_gender_comparison(df_plot: pd.DataFrame) -> alt.LayerChart:
     # create numeric source column for explicit ordering
     df_plot["source_numeric"] = df_plot["source"].map(SOURCE_ORDER.get).astype(int)
 
+    # only keep rows with gender keys in GENDER_ORDER
+    df_plot = df_plot.loc[df_plot["gender"].isin(list(GENDER_ORDER.keys()))]
+
     # create order for proper stacking (male at bottom, female on top)
     df_plot["stack_order"] = df_plot["gender"].map(GENDER_ORDER.get).astype(int)
 

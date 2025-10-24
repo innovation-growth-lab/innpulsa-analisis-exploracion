@@ -70,12 +70,29 @@ def _process_zasca_employment(df_zasca: pd.DataFrame) -> pd.DataFrame:
     df_zasca = df_zasca.loc[df_zasca["emp_total"] > 0].copy()
 
     # calculate proportions for each business
-    df_zasca["prop_female"] = df_zasca["employees_w"] / df_zasca["emp_total"]
-    df_zasca["prop_male"] = (df_zasca["emp_total"] - df_zasca["employees_w"]) / df_zasca["emp_total"]
-    df_zasca["prop_temporary"] = df_zasca["emp_htc"] / df_zasca["emp_total"]
-    df_zasca["prop_family_unpaid"] = df_zasca["emp_volc"] / df_zasca["emp_total"]
-    df_zasca["prop_indefinite"] = (df_zasca["emp_total"] - df_zasca["emp_htc"]) / df_zasca["emp_total"]
-    df_zasca["prop_assalaried"] = (df_zasca["emp_total"] - df_zasca["emp_volc"]) / df_zasca["emp_total"]
+    if "employees_w" in df_zasca.columns:
+        df_zasca["prop_female"] = df_zasca["employees_w"] / df_zasca["emp_total"]
+        df_zasca["prop_male"] = (df_zasca["emp_total"] - df_zasca["employees_w"]) / df_zasca["emp_total"]
+    else:
+        # Skip gender proportions if employees_w not available
+        df_zasca["prop_female"] = np.nan
+        df_zasca["prop_male"] = np.nan
+
+    # Handle missing emp_htc column (not available for agro)
+    if "emp_ht" in df_zasca.columns:
+        df_zasca["prop_temporary"] = df_zasca["emp_ht"] / df_zasca["emp_total"]
+        df_zasca["prop_indefinite"] = (df_zasca["emp_total"] - df_zasca["emp_ht"]) / df_zasca["emp_total"]
+    else:
+        df_zasca["prop_temporary"] = np.nan
+        df_zasca["prop_indefinite"] = np.nan
+
+    # Handle missing emp_volc column (not available for agro)
+    if "emp_vol" in df_zasca.columns:
+        df_zasca["prop_family_unpaid"] = df_zasca["emp_vol"] / df_zasca["emp_total"]
+        df_zasca["prop_assalaried"] = (df_zasca["emp_total"] - df_zasca["emp_vol"]) / df_zasca["emp_total"]
+    else:
+        df_zasca["prop_family_unpaid"] = np.nan
+        df_zasca["prop_assalaried"] = np.nan
 
     # average proportions across all businesses
     avg_prop_female = df_zasca["prop_female"].mean()
@@ -85,45 +102,59 @@ def _process_zasca_employment(df_zasca: pd.DataFrame) -> pd.DataFrame:
     avg_prop_indefinite = df_zasca["prop_indefinite"].mean()
     avg_prop_assalaried = df_zasca["prop_assalaried"].mean()
 
-    # create employment data
-    employment_data = [
-        {
-            "source": "ZASCA",
-            "category": "Género",
-            "subcategory": "Mujer",
-            "proportion": avg_prop_female,
-        },
-        {
-            "source": "ZASCA",
-            "category": "Género",
-            "subcategory": "Hombre",
-            "proportion": avg_prop_male,
-        },
-        {
-            "source": "ZASCA",
-            "category": "Duración del Contrato",
-            "subcategory": "Temporal",
-            "proportion": avg_prop_temporary,
-        },
-        {
-            "source": "ZASCA",
-            "category": "Duración del Contrato",
-            "subcategory": "Indefinido",
-            "proportion": avg_prop_indefinite,
-        },
-        {
-            "source": "ZASCA",
-            "category": "Tipo de Empleo",
-            "subcategory": "Asalariado",
-            "proportion": avg_prop_assalaried,
-        },
-        {
-            "source": "ZASCA",
-            "category": "Tipo de Empleo",
-            "subcategory": "Familiar/Sin Pago",
-            "proportion": avg_prop_family_unpaid,
-        },
-    ]
+    # create employment data - only include categories with valid data
+    employment_data = []
+
+    # Add gender data if available
+    if not np.isnan(avg_prop_female) and not np.isnan(avg_prop_male):
+        employment_data.extend([
+            {
+                "source": "ZASCA",
+                "category": "Género",
+                "subcategory": "Mujer",
+                "proportion": avg_prop_female,
+            },
+            {
+                "source": "ZASCA",
+                "category": "Género",
+                "subcategory": "Hombre",
+                "proportion": avg_prop_male,
+            },
+        ])
+
+    # Add contract duration data if available
+    if not np.isnan(avg_prop_temporary) and not np.isnan(avg_prop_indefinite):
+        employment_data.extend([
+            {
+                "source": "ZASCA",
+                "category": "Duración del Contrato",
+                "subcategory": "Temporal",
+                "proportion": avg_prop_temporary,
+            },
+            {
+                "source": "ZASCA",
+                "category": "Duración del Contrato",
+                "subcategory": "Indefinido",
+                "proportion": avg_prop_indefinite,
+            },
+        ])
+
+    # Add employment type data if available
+    if not np.isnan(avg_prop_family_unpaid) and not np.isnan(avg_prop_assalaried):
+        employment_data.extend([
+            {
+                "source": "ZASCA",
+                "category": "Tipo de Empleo",
+                "subcategory": "Asalariado",
+                "proportion": avg_prop_assalaried,
+            },
+            {
+                "source": "ZASCA",
+                "category": "Tipo de Empleo",
+                "subcategory": "Familiar/Sin Pago",
+                "proportion": avg_prop_family_unpaid,
+            },
+        ])
 
     return pd.DataFrame(employment_data)
 

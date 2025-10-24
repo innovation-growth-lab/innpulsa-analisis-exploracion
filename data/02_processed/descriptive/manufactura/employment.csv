@@ -1,10 +1,10 @@
 ﻿source,category,subcategory,proportion
 ZASCA,Género,Mujer,0.8046396505983343
 ZASCA,Género,Hombre,0.1953603494016657
-ZASCA,Duración del Contrato,Temporal,0.45063380634965416
-ZASCA,Duración del Contrato,Indefinido,0.5493661936503458
-ZASCA,Tipo de Empleo,Asalariado,0.8500981562037286
-ZASCA,Tipo de Empleo,Familiar/Sin Pago,0.14990184379627136
+ZASCA,Duración del Contrato,Temporal,0.4301603606072176
+ZASCA,Duración del Contrato,Indefinido,0.5698396393927824
+ZASCA,Tipo de Empleo,Asalariado,0.8677723199959252
+ZASCA,Tipo de Empleo,Familiar/Sin Pago,0.13222768000407495
 EMICRON,Género,Mujer,0.4209342872020943
 EMICRON,Género,Hombre,0.5790657127979056
 EMICRON,Duración del Contrato,Indefinido,0.2502251899204021

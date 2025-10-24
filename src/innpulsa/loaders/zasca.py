@@ -42,18 +42,18 @@ ZASCA_RELEVANT_COLUMNS = [
     "zona",
     "yearsales",
     "sales2023",  # many NA
-    "emp_ftc",
-    "emp_htc",
-    "emp_psc",
-    "emp_volc",
+    "emp_ft",
+    "emp_ht",
+    "emp_ps",
+    "emp_vol",
     "employees_w",
-    "emp_internc",
+    "emp_intern",
     "reason2start",
     "rut",
     "bookkeeping",
     "hascredit",
-    "GENERO",
-    "TAMANIO_EMPRESA",
+    "expsector_emp1",
+    "exptotal_emp1",
     "DEPARTAMENTO",
 ]
 
@@ -75,7 +75,7 @@ def load_zascas() -> pd.DataFrame:
     Combines data from:
     - Zascas_cerrados.csv: Closed ZASCA cohorts (manufacturing)
     - zascas_manufactura_anonima.csv: Manufacturing ZASCA cohorts
-    - agro_anonimizado.dta: Agriculture ZASCA cohorts
+    - agro_anonimizado.xlsx: Agriculture ZASCA cohorts
 
     Adds GRUPOS12 column to identify sectors:
     - 3: Manufacturing sector
@@ -91,6 +91,8 @@ def load_zascas() -> pd.DataFrame:
     closed_zascas = select_relevant_columns(closed_zascas, closed_zascas.columns.tolist())
     closed_zascas["cohort"] = closed_zascas["cohort"].astype(str) + closed_zascas["centro"].astype(str)
     closed_zascas["GRUPOS12"] = 3  # manufacturing sector
+    # drop GENERO, TAMANIO_EMPRESA, DEPARTAMENTO columns
+    closed_zascas = closed_zascas.drop(columns=["DEPARTAMENTO"])
     logger.info("loaded %d closed ZASCA records (manufacturing)", len(closed_zascas))
 
     # Load manufacturing zascas
@@ -103,28 +105,27 @@ def load_zascas() -> pd.DataFrame:
         str
     )
     manufacturing_zascas["dpto"] = manufacturing_zascas["dpto"].replace(DPTO_CORRECTED)
+    # Fix encoding issues and apply title case
+    manufacturing_zascas["rut"] = manufacturing_zascas["rut"].replace("SÃ\xad", "SÍ").str.title()
+    manufacturing_zascas["hascredit"] = manufacturing_zascas["hascredit"].replace("SÃ\xad", "SÍ").str.title()
     manufacturing_zascas["GRUPOS12"] = 3  # manufacturing sector
     logger.info("loaded %d manufacturing ZASCA records", len(manufacturing_zascas))
 
-    # Load agro zascas
-    logger.info("loading agro ZASCA data from agro_anonimizado.dta")
-    agro_zascas = load_stata(Path(RAW_DATA_DIR) / "agro_anonimizado.dta")
+    # load agro zascas
+    logger.info("loading agro ZASCA data from agro_anonimizado.xlsx")
+    agro_zascas = pd.read_excel(Path(RAW_DATA_DIR) / "agro_anonimizado.xlsx", engine="openpyxl")
     agro_zascas = select_relevant_columns(agro_zascas, agro_zascas.columns.tolist())
     if "cohort" in agro_zascas.columns:
         agro_zascas["cohort"] = agro_zascas["cohort"].astype(str) + agro_zascas["centro"].astype(str)
-    # rename columns {GENERO, TAMANIO_EMPRESA, DEPARTAMENTO} to {sex_emp1, size_emp, dpto}
-    agro_zascas = agro_zascas.rename(
-        columns={"GENERO": "sex_emp1", "TAMANIO_EMPRESA": "size_emp", "DEPARTAMENTO": "dpto"}
-    )
-    agro_zascas["size_emp"] = agro_zascas["size_emp"].apply(
-        lambda x: 9 if str(x).strip().lower() == "microempresa" else 10
-    )
+    # rename DEPARTAMENTO column to dpto
+    agro_zascas = agro_zascas.rename(columns={"DEPARTAMENTO": "dpto"})
+    agro_zascas["hascredit"] = agro_zascas["hascredit"].str.title()
     agro_zascas["sex_emp1"] = agro_zascas["sex_emp1"].replace({"Hombre": "Masculino", "Mujer": "Femenino"})
     agro_zascas["dpto"] = agro_zascas["dpto"].replace(DPTO_CORRECTED)
     agro_zascas["GRUPOS12"] = 1  # agriculture sector
     logger.info("loaded %d agro ZASCA records", len(agro_zascas))
 
-    # Combine all datasets
+    # combine all datasets
     logger.info("combining ZASCA datasets")
     combined_zascas = pd.concat([closed_zascas, manufacturing_zascas, agro_zascas], ignore_index=True)
     logger.info(

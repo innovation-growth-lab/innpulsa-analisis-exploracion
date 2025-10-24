@@ -22,8 +22,9 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
 
     charts = []
 
-    # get unique categories
-    categories = df_plot["category"].unique()
+    # get unique categories in the correct order
+    category_order = ["Género", "Duración del Contrato", "Tipo de Empleo"]
+    categories = [cat for cat in category_order if cat in df_plot["category"].unique()]
 
     for i, category in enumerate(categories):
         category_data = df_plot.loc[df_plot["category"] == category].copy()
@@ -45,7 +46,7 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
 
         chart = (
             alt.Chart(category_data)
-            .mark_circle(size=600, stroke="black", strokeWidth=1, opacity=1)
+            .mark_circle(size=500, stroke="black", strokeWidth=1, opacity=1)
             .encode(
                 x=x_config,
                 y=alt.Y(
@@ -108,9 +109,135 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
         charts.append(
             layered_chart.properties(
                 width=500,
-                height=75,
+                height=60,
                 title=alt.TitleParams(text=f"{category.replace('_', ' ')}", fontSize=10),
             ).resolve_scale(x="shared", y="independent")
         )
 
     return alt.vconcat(*charts, spacing=8)
+
+
+def _plot_employment_dumbbell_by_category_base(df_plot: pd.DataFrame, hide_y_labels: bool = False) -> alt.VConcatChart:
+    """Create employment dumbbell charts without configuration for use in combined charts."""
+    # define colors for each source
+    color_scale = alt.Scale(
+        domain=["ZASCA", "EMICRON", "RUES"],
+        range=["#00B2A2", "#FF5836", "#1F5DAD"],  # green, orange, blue
+    )
+
+    charts = []
+
+    # get unique categories in the correct order
+    category_order = ["Género", "Duración del Contrato", "Tipo de Empleo"]
+    categories = [cat for cat in category_order if cat in df_plot["category"].unique()]
+
+    for i, category in enumerate(categories):
+        category_data = df_plot.loc[df_plot["category"] == category].copy()
+        # add sort order: RUES (0), EMICRON (1), ZASCA (2) so ZASCA renders on top
+        category_data["source_order"] = category_data["source"].map({"RUES": 0, "EMICRON": 1, "ZASCA": 2})
+        is_last = i == len(categories) - 1
+
+        # x-axis configuration: show labels only on last chart, keep 10% grid on all
+        x_config = alt.X(
+            "proportion:Q",
+            title="Proporción (%)" if is_last else "",
+            scale=alt.Scale(domain=[0, 1]),
+            axis=(
+                alt.Axis(format=".0%", tickCount=11, grid=True, labelFontSize=8, titleFontSize=10)
+                if is_last
+                else alt.Axis(format=".0%", tickCount=11, grid=True, labels=False, ticks=False, title="")
+            ),
+        )
+
+        chart = (
+            alt.Chart(category_data)
+            .mark_circle(size=500, stroke="black", strokeWidth=1, opacity=1)
+            .encode(
+                x=x_config,
+                y=alt.Y(
+                    "subcategory:N",
+                    title="",
+                    sort=alt.SortField("subcategory"),
+                    axis=alt.Axis(labels=not hide_y_labels, labelFontSize=8, titleFontSize=10),
+                ),
+                color=alt.Color(
+                    "source:N",
+                    scale=color_scale,
+                    legend=alt.Legend(
+                        orient="bottom",
+                        direction="horizontal",
+                        columns=3,
+                        title=None,
+                        labelExpr="''",
+                        symbolSize=200,
+                        symbolStrokeWidth=1,
+                        padding=0,
+                        offset=15,
+                        columnPadding=60,
+                    ),
+                ),
+                order=alt.Order("source_order:Q"),
+            )
+        )
+
+        # add connecting lines between sources for each subcategory
+        lines = (
+            alt.Chart(category_data)
+            .mark_rule(stroke="gray", opacity=0.3, strokeWidth=1, strokeDash=[5, 5])
+            .encode(
+                x=alt.X("proportion:Q"),
+                y=alt.Y("subcategory:N", axis=None, title=None),
+                detail="subcategory:N",
+            )
+            .transform_aggregate(min_x="min(proportion)", max_x="max(proportion)", groupby=["subcategory"])
+            .encode(
+                x=alt.X("min_x:Q"),
+                x2=alt.X2("max_x:Q"),
+                y=alt.Y("subcategory:N", axis=None, title=None),
+            )
+        )
+
+        # value labels inside each circle for all points
+        value_labels = (
+            alt.Chart(category_data)
+            .transform_filter("datum.source != 'RUES'")
+            .mark_text(baseline="middle", align="center", dy=0.5, fontSize=8, color="white", fontWeight="bold")
+            .encode(
+                x=alt.X("proportion:Q"),
+                y=alt.Y("subcategory:N", axis=None, title=None),
+                text=alt.Text("proportion:Q", format=".0%"),
+            )
+        )
+
+        # layer the charts and apply properties
+        layered_chart = alt.layer(lines, chart, value_labels)
+        charts.append(
+            layered_chart.properties(
+                width=250,
+                height=60,
+                title=alt.TitleParams(text=f"{category.replace('_', ' ')}", fontSize=10),
+            ).resolve_scale(x="shared", y="independent")
+        )
+
+    return alt.vconcat(*charts, spacing=8)
+
+
+def plot_employment_dumbbell_by_category_combined(df_manu: pd.DataFrame, df_agro: pd.DataFrame) -> alt.HConcatChart:
+    """Create side-by-side employment dumbbell charts for manufacturing and agro sectors.
+
+    Args:
+        df_manu: manufacturing employment data
+        df_agro: agro employment data
+
+    Returns:
+        alt.HConcatChart: Side-by-side employment plots
+
+    """
+    # Create agro chart (first) - with y-axis labels
+    chart_agro = _plot_employment_dumbbell_by_category_base(df_agro, hide_y_labels=False)
+
+    # Create manufacturing chart (second) - hide y-axis labels
+    chart_manu = _plot_employment_dumbbell_by_category_base(df_manu, hide_y_labels=True)
+
+    # Create the combined chart - agro first, manufactura second
+    return alt.hconcat(chart_agro, chart_manu, spacing=30)

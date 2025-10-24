@@ -64,7 +64,7 @@ def harmonise_zasca() -> pd.DataFrame:
     df_zasca = load_zascas()
 
     # map departamento to codigo
-    df_zasca["COD_DEPTO"] = df_zasca["dpto"].replace(DEP_CODIGO)
+    df_zasca["COD_DEPTO"] = df_zasca["dpto"].replace(DEP_CODIGO).infer_objects(copy=False)
 
     return df_zasca
 

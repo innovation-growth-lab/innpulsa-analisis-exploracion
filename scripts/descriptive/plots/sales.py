@@ -120,7 +120,7 @@ def plot_sales_raincloud_zasca(df_plot: pd.DataFrame) -> alt.VConcatChart:
             ),
             text="percentage_label:O",
         )
-        .transform_calculate(zero="-75")
+        .transform_calculate(zero="-175")
         .properties(width=625, height=75)
     )
 
@@ -363,7 +363,7 @@ def plot_sales_raincloud_rues(df_plot: pd.DataFrame) -> alt.VConcatChart:
             ),
             text="percentage_label:O",
         )
-        .transform_calculate(zero="-300")
+        .transform_calculate(zero="-350")
         .properties(width=625, height=75)
     )
 

@@ -63,6 +63,20 @@ def business_age_analysis(df_zasca: pd.DataFrame, df_emicron_2024_merged: pd.Dat
     # drop companies with business age greater than 50 years
     df_zasca = df_zasca.loc[df_zasca["business_age"] <= 50]  # noqa: PLR2004
 
+    # process sector experience (expsector_emp1) - add jitter to make integers into floats
+    df_zasca["expsector_emp1"] = pd.to_numeric(df_zasca["expsector_emp1"], errors="coerce")
+    # add larger random jitter (±2.5) to integer values to spread them for visualization
+    df_zasca["sector_experience"] = df_zasca["expsector_emp1"] + rng.uniform(-2.5, 2.5, size=len(df_zasca))
+    # cap at 50 years and ensure non-negative
+    df_zasca["sector_experience"] = df_zasca["sector_experience"].clip(lower=0, upper=50)
+
+    # process total experience (exptotal_emp1) - add jitter to make integers into floats
+    df_zasca["exptotal_emp1"] = pd.to_numeric(df_zasca["exptotal_emp1"], errors="coerce")
+    # add larger random jitter (±2.5) to integer values to spread them for visualization
+    df_zasca["total_experience"] = df_zasca["exptotal_emp1"] + rng.uniform(-2.5, 2.5, size=len(df_zasca))
+    # cap at 50 years and ensure non-negative
+    df_zasca["total_experience"] = df_zasca["total_experience"].clip(lower=0, upper=50)
+
     # add source identifier
     df_zasca["source"] = "ZASCA"
 
@@ -107,11 +121,18 @@ def business_age_analysis(df_zasca: pd.DataFrame, df_emicron_2024_merged: pd.Dat
     df_emicron_sample["source"] = "EMICRON"
 
     # select relevant columns for both datasets
-    zasca_cols = ["business_age", "start_date", "source"]
+    zasca_cols = ["business_age", "sector_experience", "total_experience", "start_date", "source"]
     emicron_cols = ["business_age", "start_date", "source"]
 
+    # add placeholder for sector_experience and total_experience in EMICRON data (will be NaN)
+    df_emicron_sample["sector_experience"] = pd.NA
+    df_emicron_sample["total_experience"] = pd.NA
+
     # combine datasets
-    result: pd.DataFrame = pd.concat([df_zasca[zasca_cols], df_emicron_sample[emicron_cols]], ignore_index=True)  # type: ignore[assignment]
+    result: pd.DataFrame = pd.concat(
+        [df_zasca[zasca_cols], df_emicron_sample[emicron_cols + ["sector_experience", "total_experience"]]],  # type: ignore[assignment]
+        ignore_index=True,
+    )
     return result
 
 

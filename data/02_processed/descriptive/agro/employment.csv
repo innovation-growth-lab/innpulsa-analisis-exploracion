@@ -1,0 +1,13 @@
+﻿source,category,subcategory,proportion
+ZASCA,Duración del Contrato,Temporal,0.48239128756771466
+ZASCA,Duración del Contrato,Indefinido,0.5176087124322853
+ZASCA,Tipo de Empleo,Asalariado,0.7321608026804366
+ZASCA,Tipo de Empleo,Familiar/Sin Pago,0.26783919731956346
+EMICRON,Género,Mujer,0.1931001211136057
+EMICRON,Género,Hombre,0.8068998788863943
+EMICRON,Duración del Contrato,Indefinido,0.13373565280041302
+EMICRON,Duración del Contrato,Temporal,0.866264347199587
+EMICRON,Tipo de Empleo,Asalariado,0.553283419638537
+EMICRON,Tipo de Empleo,Familiar/Sin Pago,0.4467165803614631
+RUES,Género,Mujer,0.4753755360168759
+RUES,Género,Hombre,0.5246244639831241

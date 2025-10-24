@@ -46,8 +46,8 @@ def plot_mirror_histogram_with_excess(df_plot: pd.DataFrame) -> alt.LayerChart:
             order=alt.Order("type:N", sort="descending"),
         )
         .properties(
-            width=1000,
-            height=550,
+            width=400,
+            height=300,
         )
     )
 
@@ -61,7 +61,7 @@ def plot_mirror_histogram_with_excess(df_plot: pd.DataFrame) -> alt.LayerChart:
     # add text labels showing total percentages
     text_chart = (
         alt.Chart(df_totals)
-        .mark_text(align="center", baseline="middle", fontSize=16, color="black")
+        .mark_text(align="center", baseline="middle", fontSize=10, color="black")
         .encode(
             y=alt.Y("age_bin:N", sort=alt.SortField("age_bin", order="descending")),
             x=alt.X("x_offset:Q"),
@@ -74,7 +74,7 @@ def plot_mirror_histogram_with_excess(df_plot: pd.DataFrame) -> alt.LayerChart:
     return (
         chart.configure_view(strokeWidth=0)
         .configure_axis(domain=False, ticks=False, labels=False, grid=False)
-        .configure_axisY(labels=True, title="Grupos de Edad", labelPadding=20, labelFontSize=14)
+        .configure_axisY(labels=True, title="Grupos de Edad", labelPadding=20, labelFontSize=10)
     )
 
 
