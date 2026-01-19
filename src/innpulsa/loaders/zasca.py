@@ -8,7 +8,7 @@ import logging
 from pathlib import Path
 import pandas as pd
 from innpulsa.settings import RAW_DATA_DIR, DATA_DIR
-from .generic import load_csv, load_stata
+from .generic import load_csv
 
 # define relevant columns to keep from ZASCA data
 ZASCA_RELEVANT_COLUMNS = [
@@ -127,7 +127,7 @@ def load_zascas() -> pd.DataFrame:
 
     # combine all datasets
     logger.info("combining ZASCA datasets")
-    combined_zascas = pd.concat([closed_zascas, manufacturing_zascas, agro_zascas], ignore_index=True)
+    combined_zascas = pd.concat([manufacturing_zascas, agro_zascas], ignore_index=True)
     logger.info(
         "combined total: %d ZASCA records (manufacturing: %d, agro: %d)",
         len(combined_zascas),
@@ -138,14 +138,17 @@ def load_zascas() -> pd.DataFrame:
     return combined_zascas
 
 
-def load_processed_zasca() -> pd.DataFrame:
+def load_processed_zasca(sector: str = "manufactura") -> pd.DataFrame:
     """Read the pre-processed ZASCA data from CSV.
+
+    Args:
+        sector: The sector to load ("manufactura" or "agro")
 
     Returns:
         pd.DataFrame: Processed ZASCA data from saved CSV file.
 
     """
-    zasca_path = Path(DATA_DIR) / "02_processed/zasca_total.csv"
+    zasca_path = Path(DATA_DIR) / f"02_processed/zasca_{sector}_total.csv"
     logger.info("reading processed ZASCA data from %s", zasca_path)
 
     try:

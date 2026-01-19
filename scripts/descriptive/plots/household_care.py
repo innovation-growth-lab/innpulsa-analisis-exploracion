@@ -54,7 +54,7 @@ def plot_household_care_violin(df_plot: pd.DataFrame) -> alt.LayerChart:
     # create the violin plot
     chart = (
         alt.Chart(density_data)
-        .mark_area(orient="horizontal", opacity=0.8, color="#1F5DAD")
+        .mark_area(orient="horizontal", opacity=0.8, color="#003366")
         .encode(
             x=alt.X("density:Q", axis=alt.Axis(labels=False, title=None, grid=False), scale=alt.Scale(domain=[-1, 1])),
             y=alt.Y(
@@ -71,7 +71,7 @@ def plot_household_care_violin(df_plot: pd.DataFrame) -> alt.LayerChart:
     # add dots for the actual data points
     dots = (
         alt.Chart(df_plot)
-        .mark_circle(size=60, opacity=0.7, color="#1F5DAD")
+        .mark_circle(size=60, opacity=0.7, color="#003366")
         .encode(
             x=alt.X("jitter:Q", scale=alt.Scale(domain=[-1, 1])),
             y=alt.Y(

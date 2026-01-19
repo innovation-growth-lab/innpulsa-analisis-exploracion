@@ -51,7 +51,7 @@ async def google_geocode(dataset: str) -> int:
 
     # load processed addresses
     try:
-        input_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_addresses.csv"
+        input_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_manufactura_addresses.csv"
         logger.info("reading addresses from %s", input_path)
         df = load_csv(input_path, encoding="utf-8-sig")
     except Exception:  # pylint: disable=broad-except
@@ -70,7 +70,7 @@ async def google_geocode(dataset: str) -> int:
     }
 
     # initialise geocoder and process addresses
-    coordinates_json_path = Path(DATA_DIR) / f"02_processed/geolocation/coordinates/{dataset}.json"
+    coordinates_json_path = Path(DATA_DIR) / f"02_processed/geolocation/coordinates/{dataset}_manufactura.json"
 
     # load existing results if they exist
     existing_results = {}
@@ -110,7 +110,7 @@ async def google_geocode(dataset: str) -> int:
 
     # save combined results
     output_df = pd.DataFrame(output_records)
-    output_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_coordinates.csv"
+    output_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_manufactura_coordinates.csv"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_df.to_csv(output_path, index=False)
 
@@ -145,7 +145,7 @@ def nominatim_geocode(dataset: str) -> int:
     logger = configure_logger("geolocation.geocoding.nominatim")
 
     # load processed addresses (no need for API key)
-    input_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_addresses.csv"
+    input_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_manufactura_addresses.csv"
     logger.info("reading addresses from %s", input_path)
     df = load_csv(input_path, encoding="utf-8-sig")
 
@@ -189,7 +189,7 @@ def nominatim_geocode(dataset: str) -> int:
         })
 
     output_df = pd.DataFrame(output_records)
-    output_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_coordinates_nominatim.csv"
+    output_path = Path(DATA_DIR) / f"02_processed/geolocation/{dataset}_manufactura_coordinates_nominatim.csv"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_df.to_csv(output_path, index=False)
 

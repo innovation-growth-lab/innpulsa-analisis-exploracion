@@ -21,11 +21,11 @@ def plot_mirror_histogram_with_excess(df_plot: pd.DataFrame) -> alt.LayerChart:
         an altair chart object.
 
     """
-    # define a colour scheme with team colors
+    # define a colour scheme with Colombian flag colors (prioritizing blue and red)
     color_scale = alt.Scale(
         domain=["ZASCA_common", "ZASCA_ZASCA", "EMICRON_common", "EMICRON_EMICRON"],
-        range=["#00B2A2", "#66D1C7", "#FF5836", "#FFAC9B"],
-        #      [green, green 60, red, red 60]
+        range=["#003366", "#A5C8E8", "#FFC107", "#FFF59D"],
+        #      [navy blue, light blue, bright yellow, light yellow]
     )
 
     # create base chart

@@ -64,16 +64,16 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:  # no
             "Otros programas de apoyo_No vulnerable",
         ],
         range=[
-            "#7DACE8",  # ZASCA A: blue 60
-            "#FF5836",  # ZASCA B: red
-            "#FAB61B",  # ZASCA C: yellow
-            "#00B2A2",  # ZASCA D: green
-            "#7DACE8",  # SISBÉN Nacional A: blue 60
-            "#FF5836",  # SISBÉN Nacional B: red
-            "#FAB61B",  # SISBÉN Nacional C: yellow
-            "#00B2A2",  # SISBÉN Nacional D: green
-            "#FF8268",  # Otros programas Vulnerable: red 80
-            "#00B2A2",  # Otros programas No vulnerable: yellow 80
+            "#003366",  # ZASCA A: navy blue
+            "#FFC107",  # ZASCA B: bright yellow
+            "#9CA3AF",  # ZASCA C: light gray
+            "#A5C8E8",  # ZASCA D: light blue
+            "#003366",  # SISBÉN Nacional A: navy blue
+            "#FFC107",  # SISBÉN Nacional B: bright yellow
+            "#9CA3AF",  # SISBÉN Nacional C: light gray
+            "#A5C8E8",  # SISBÉN Nacional D: light blue
+            "#FFDB6E",  # Otros programas Vulnerable: medium yellow
+            "#A5C8E8",  # Otros programas No vulnerable: light blue
         ],
     )
 
@@ -148,7 +148,7 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:  # no
     # percentage labels
     text_chart = (
         alt.Chart(df_labels)
-        .mark_text(align="center", baseline="middle", fontSize=16, color="black", dy=10)
+        .mark_text(align="center", baseline="middle", fontSize=16, color="white", dy=10)
         .encode(
             y=alt.Y("source:N", sort=["ZASCA", "SISBÉN Nacional", "Otros programas de apoyo"]),
             x=alt.X("text_x:Q"),
@@ -163,7 +163,7 @@ def plot_sisben_groups_diverging(df_plot: pd.DataFrame) -> alt.LayerChart:  # no
     # group letter labels above percentages
     letter_chart = (
         alt.Chart(df_labels)
-        .mark_text(align="center", baseline="middle", fontSize=14, color="black", fontWeight="bold", dy=-10)
+        .mark_text(align="center", baseline="middle", fontSize=14, color="white", fontWeight="bold", dy=-10)
         .encode(
             y=alt.Y("source:N", sort=["ZASCA", "SISBÉN Nacional", "Otros programas de apoyo"]),
             x=alt.X("text_x:Q"),

@@ -227,6 +227,21 @@ class AddressProcessor:
         rues["city_norm"] = self._normalise_city(pd.Series(rues["city"]))
         rues["ciiu_principal"] = rues["ciiu_principal"].astype(str).str.strip()
 
+        # Check if this is agro sector (zasca_agro dataset)
+        if "agro" in self.dataset:
+            # For agro sector, use hardcoded agriculture CIIU codes
+            logger.info("Using hardcoded agriculture CIIU codes for agro sector")
+            agriculture_ciius = ["01", "02", "03"]
+
+            # Filter RUES to only include agriculture CIIUs
+            rues_filtered = rues.loc[rues["ciiu_principal"].str[:2].isin(agriculture_ciius)].copy()
+            logger.info("Filtered RUES to agriculture CIIUs: %d records", len(rues_filtered))
+
+            # Sample with city-based weighting
+            sampled_rues = self._sample_with_city_weights(rues_filtered, zasca, target_n)
+            return sampled_rues.drop(columns=["city_norm"], errors="ignore")
+
+        # For manufacturing sector, use the original logic
         # Step 1: Enrich ZASCA with CIIU data from RUES
         zasca_with_ciiu = self._enrich_zasca_with_ciiu(zasca, rues)
 

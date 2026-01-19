@@ -21,6 +21,8 @@ data/01_raw/*
 !data/02_processed/geolocation/**
 data/02_processed/geolocation/rues_addresses/
 data/02_processed/geolocation/zasca_addresses/
+data/02_processed/geolocation/rues_manufactura_addresses/
+data/02_processed/geolocation/zasca_manufactura_addresses/
 
 # anything with checkpoint
 *checkpoint*

@@ -38,7 +38,7 @@ async def run_pipeline(target_n: int, *, clear_existing: bool = False) -> int:
 
     """
     # Initialise shared processor for RUES dataset
-    processor = AddressProcessor("rues")
+    processor = AddressProcessor("rues_manufactura")
 
     if clear_existing:
         logger.info("Clearing existing batch files from %s", processor.output_dir)

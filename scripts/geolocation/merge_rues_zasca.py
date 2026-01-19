@@ -151,16 +151,16 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]
     """
     # read data from both sources - rues
     rues_total = pd.read_csv(
-        str(Path(DATA_DIR) / "02_processed/rues_total.csv"), encoding="utf-8-sig", low_memory=False
+        str(Path(DATA_DIR) / "02_processed/rues_manufactura_total.csv"), encoding="utf-8-sig", low_memory=False
     )
     rues_coords = pd.read_csv(
-        str(Path(DATA_DIR) / "02_processed/geolocation/rues_coordinates.csv"), encoding="utf-8-sig"
+        str(Path(DATA_DIR) / "02_processed/geolocation/rues_manufactura_coordinates.csv"), encoding="utf-8-sig"
     )
 
     # read data from both sources - zasca
-    zasca_total = pd.read_csv(str(Path(DATA_DIR) / "02_processed/zasca_total.csv"), encoding="utf-8-sig")
+    zasca_total = pd.read_csv(str(Path(DATA_DIR) / "02_processed/zasca_manufactura_total.csv"), encoding="utf-8-sig")
     zasca_coords = pd.read_csv(
-        str(Path(DATA_DIR) / "02_processed/geolocation/zasca_coordinates.csv"), encoding="utf-8-sig"
+        str(Path(DATA_DIR) / "02_processed/geolocation/zasca_manufactura_coordinates.csv"), encoding="utf-8-sig"
     )
 
     return rues_total, rues_coords, zasca_total, zasca_coords
@@ -436,9 +436,9 @@ def main() -> None:
 
     # Save results
     data_with_coords.to_csv(
-        DATA_DIR / "02_processed/geolocation/data_with_coords.csv", encoding="utf-8-sig", index=False
+        DATA_DIR / "02_processed/geolocation/data_manufactura_with_coords.csv", encoding="utf-8-sig", index=False
     )
-    logger.info("Results saved to data_with_coords.csv")
+    logger.info("Results saved to data_manufactura_with_coords.csv")
 
 
 if __name__ == "__main__":

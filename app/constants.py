@@ -4,7 +4,7 @@ from pathlib import Path
 DATA_DIR = Path("data/02_processed/geolocation")
 
 # ZASCA addresses paths - dataset-specific
-DATA_WITH_COORDS_PATH = DATA_DIR / "data_with_coords.csv"
+DATA_WITH_COORDS_PATH = DATA_DIR / "data_manufactura_with_coords.csv"
 
 # City map settings
 CENTRO_CONFIG = {
@@ -41,9 +41,9 @@ CENTRO_ZASCA_CONFIG = {
 
 # Colours
 # RGBA colours (R, G, B, A)
-CLR_ZASCA_LIGHT = [50, 205, 50, 180]  # light-green  (ZASCA only)
-CLR_ZASCA_DARK = [0, 100, 0, 200]  # dark-green   (ZASCA + RUES)
-CLR_RUES = [255, 0, 0, 160]  # red (Solo RUES)
+CLR_ZASCA_LIGHT = [206, 17, 38, 180]  # red  (ZASCA only) - changed from green
+CLR_ZASCA_DARK = [0, 56, 147, 200]  # blue  (ZASCA + RUES) - changed from dark green
+CLR_RUES = [0, 56, 147, 160]  # blue (Solo RUES) - changed from red
 
 # CIIU descriptions (extend as needed)
 CIIU_DESCRIPTIONS: dict[int, str] = {

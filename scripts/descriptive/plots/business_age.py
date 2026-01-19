@@ -31,7 +31,7 @@ def plot_business_age_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
             as_=["business_age", "density"],
             bandwidth=1.0,
         )
-        .mark_area(opacity=1, interpolate="monotone", color="#00B2A2", stroke="black", strokeWidth=1)
+        .mark_area(opacity=1, interpolate="monotone", color="#003366", stroke="black", strokeWidth=1)
         .encode(
             x=alt.X(
                 "business_age:Q",
@@ -50,7 +50,7 @@ def plot_business_age_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
     # boxplot
     boxplot = (
         alt.Chart(zasca_data)
-        .mark_boxplot(size=20, opacity=1, color="#00B2A2")
+        .mark_boxplot(size=20, opacity=1, color="#003366")
         .encode(
             x=alt.X(
                 "business_age:Q",
@@ -64,7 +64,7 @@ def plot_business_age_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
     # scatter plot with jitter (below boxplot)
     scatter = (
         alt.Chart(zasca_data)
-        .mark_circle(size=8, opacity=0.2, color="#00B2A2")
+        .mark_circle(size=8, opacity=0.2, color="#003366")
         .encode(
             x=alt.X(
                 "business_age:Q",
@@ -111,7 +111,7 @@ def plot_business_age_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatCha
             as_=["business_age", "density"],
             bandwidth=1.0,
         )
-        .mark_area(opacity=1, interpolate="monotone", color="#FF5836", stroke="black", strokeWidth=1)
+        .mark_area(opacity=1, interpolate="monotone", color="#FFC107", stroke="black", strokeWidth=1)
         .encode(
             x=alt.X(
                 "business_age:Q",
@@ -130,7 +130,7 @@ def plot_business_age_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatCha
     # boxplot
     boxplot = (
         alt.Chart(emicron_data)
-        .mark_boxplot(size=20, opacity=1, color="#FF5836")
+        .mark_boxplot(size=20, opacity=1, color="#FFC107")
         .encode(
             x=alt.X(
                 "business_age:Q",
@@ -144,7 +144,7 @@ def plot_business_age_raincloud_emicron(df_plot: pd.DataFrame) -> alt.VConcatCha
     # scatter plot with jitter (below boxplot)
     scatter = (
         alt.Chart(emicron_data)
-        .mark_circle(size=8, opacity=0.2, color="#FF5836")
+        .mark_circle(size=8, opacity=0.2, color="#FFC107")
         .encode(
             x=alt.X(
                 "business_age:Q",
@@ -208,7 +208,7 @@ def plot_sector_experience_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
             as_=["sector_experience", "density"],
             bandwidth=1.0,
         )
-        .mark_area(opacity=1, interpolate="monotone", color="#3C82DC", stroke="black", strokeWidth=1)
+        .mark_area(opacity=1, interpolate="monotone", color="#9CA3AF", stroke="black", strokeWidth=1)
         .encode(
             x=alt.X(
                 "sector_experience:Q",
@@ -227,7 +227,7 @@ def plot_sector_experience_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
     # boxplot
     boxplot = (
         alt.Chart(zasca_data)
-        .mark_boxplot(size=20, opacity=1, color="#3C82DC")
+        .mark_boxplot(size=20, opacity=1, color="#9CA3AF")
         .encode(
             x=alt.X(
                 "sector_experience:Q",
@@ -241,7 +241,7 @@ def plot_sector_experience_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
     # scatter plot with jitter (below boxplot)
     scatter = (
         alt.Chart(zasca_data)
-        .mark_circle(size=8, opacity=0.2, color="#3C82DC")
+        .mark_circle(size=8, opacity=0.2, color="#9CA3AF")
         .encode(
             x=alt.X(
                 "sector_experience:Q",
@@ -305,7 +305,7 @@ def plot_total_experience_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
             as_=["total_experience", "density"],
             bandwidth=1.0,
         )
-        .mark_area(opacity=1, interpolate="monotone", color="#3C82DC", stroke="black", strokeWidth=1)
+        .mark_area(opacity=1, interpolate="monotone", color="#9CA3AF", stroke="black", strokeWidth=1)
         .encode(
             x=alt.X(
                 "total_experience:Q",
@@ -324,7 +324,7 @@ def plot_total_experience_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
     # boxplot
     boxplot = (
         alt.Chart(zasca_data)
-        .mark_boxplot(size=20, opacity=1, color="#3C82DC")
+        .mark_boxplot(size=20, opacity=1, color="#9CA3AF")
         .encode(
             x=alt.X(
                 "total_experience:Q",
@@ -338,7 +338,7 @@ def plot_total_experience_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
     # scatter plot with jitter (below boxplot)
     scatter = (
         alt.Chart(zasca_data)
-        .mark_circle(size=8, opacity=0.2, color="#3C82DC")
+        .mark_circle(size=8, opacity=0.2, color="#9CA3AF")
         .encode(
             x=alt.X(
                 "total_experience:Q",
@@ -363,7 +363,7 @@ def plot_total_experience_raincloud(df_plot: pd.DataFrame) -> alt.VConcatChart:
             x=alt.X(
                 "total_experience:Q",
                 axis=alt.Axis(
-                    title="Experiencia Total",
+                    title="Experiencia Total (años)",
                     labelFontSize=12,
                     tickCount=6,
                     values=[0, 10, 20, 30, 40, 50],

@@ -21,7 +21,7 @@ def plot_reasons_butterfly(df_plot: pd.DataFrame) -> alt.LayerChart:
     """
     color_scale = alt.Scale(
         domain=["ZASCA_common", "ZASCA_ZASCA", "EMICRON_common", "EMICRON_EMICRON"],
-        range=["#00B2A2", "#66D1C7", "#FF5836", "#FFAC9B"],
+        range=["#003366", "#A5C8E8", "#FFC107", "#FFF59D"],
     )
 
     # prepare data with signed values for each part
@@ -82,7 +82,7 @@ def _plot_reasons_butterfly_base(df_plot: pd.DataFrame, hide_y_labels: bool = Fa
     """Create a butterfly chart without configuration for use in combined charts."""
     color_scale = alt.Scale(
         domain=["ZASCA_common", "ZASCA_ZASCA", "EMICRON_common", "EMICRON_EMICRON"],
-        range=["#00B2A2", "#66D1C7", "#FF5836", "#FFAC9B"],
+        range=["#003366", "#A5C8E8", "#FFC107", "#FFF59D"],
     )
 
     # prepare data with signed values for each part

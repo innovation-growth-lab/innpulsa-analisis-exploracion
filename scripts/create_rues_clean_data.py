@@ -39,7 +39,7 @@ def main():
 
     output_dir = Path(DATA_DIR) / "02_processed"
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / "rues_total.csv"
+    output_path = output_dir / "rues_manufactura_total.csv"
 
     logger.info("saving processed RUES data to %s", output_path)
     rues_df.to_csv(output_path, index=False, encoding="utf-8-sig")

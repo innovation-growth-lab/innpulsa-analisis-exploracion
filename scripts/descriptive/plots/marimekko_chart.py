@@ -59,8 +59,8 @@ def plot_marimekko_gender_comparison(df_plot: pd.DataFrame) -> alt.LayerChart:
     # define a colour scheme for stacked bars using team colors
     color_scale = alt.Scale(
         domain=["ZASCA_Masculino", "ZASCA_Femenino", "EMICRON_Masculino", "EMICRON_Femenino"],
-        range=["#66D1C7", "#00B2A2", "#FFAC9B", "#FF5836"],
-        # green 60, green, red 60, red
+        range=["#4A6FA5", "#003366", "#FFDB6E", "#FFC107"],
+        # medium blue, navy blue, medium yellow, bright yellow
     )
 
     # create stacked bar chart
@@ -103,7 +103,7 @@ def plot_marimekko_gender_comparison(df_plot: pd.DataFrame) -> alt.LayerChart:
             align="center",
             baseline="middle",
             fontSize=14,
-            color="black",
+            color="white",
             dx=0,
             dy=0,
         )

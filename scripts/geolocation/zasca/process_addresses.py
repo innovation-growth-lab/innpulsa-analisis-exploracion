@@ -15,7 +15,7 @@ from innpulsa.logging import configure_logger
 from innpulsa.geolocation.prompts import SYSTEM_PROMPT_ZASCA
 
 
-async def main() -> int:
+async def main(sector: str = "manufactura") -> int:
     """
     Process ZASCA addresses and save results.
 
@@ -24,6 +24,9 @@ async def main() -> int:
     - Process the ZASCA data
     - Save the processed ZASCA data
 
+    Args:
+        sector: The sector to process ("manufactura" or "agro")
+
     Returns:
         int: 0 if successful, 1 otherwise.
 
@@ -31,11 +34,11 @@ async def main() -> int:
     logger = configure_logger("zasca_llm")
 
     # Initialise shared processor for ZASCA dataset with subdirectory
-    processor = AddressProcessor("zasca", subdirectory=None)
+    processor = AddressProcessor(f"zasca_{sector}", subdirectory=None)
 
     # Load input data
-    logger.info("loading ZASCA data")
-    df = load_processed_zasca()
+    logger.info("loading ZASCA data for %s sector", sector)
+    df = load_processed_zasca(sector)
     if df is None:
         logger.error("failed to load ZASCA data")
         return 1
@@ -75,6 +78,12 @@ async def main() -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process ZASCA addresses with LLM and save results.")
+    parser.add_argument(
+        "--sector",
+        choices=["manufactura", "agro"],
+        default="manufactura",
+        help="Sector to process: manufactura or agro (default: manufactura)",
+    )
 
     args = parser.parse_args()
-    sys.exit(asyncio.run(main()))
+    sys.exit(asyncio.run(main(args.sector)))

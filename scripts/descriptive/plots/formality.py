@@ -16,7 +16,7 @@ def plot_formality_by_indicator(df_plot: pd.DataFrame) -> alt.VConcatChart:
     """
     color_scale = alt.Scale(
         domain=["ZASCA_common", "ZASCA_ZASCA", "EMICRON_common", "EMICRON_EMICRON"],
-        range=["#00B2A2", "#66D1C7", "#FF5836", "#FFAC9B"],
+        range=["#003366", "#A5C8E8", "#FFC107", "#FFF59D"],
     )
 
     charts = []
@@ -108,7 +108,7 @@ def _plot_formality_by_indicator_base(df_plot: pd.DataFrame, hide_y_labels: bool
     """
     color_scale = alt.Scale(
         domain=["ZASCA_common", "ZASCA_ZASCA", "EMICRON_common", "EMICRON_EMICRON"],
-        range=["#00B2A2", "#66D1C7", "#FF5836", "#FFAC9B"],
+        range=["#003366", "#A5C8E8", "#FFC107", "#FFF59D"],
     )
 
     charts = []

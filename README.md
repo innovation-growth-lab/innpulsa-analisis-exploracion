@@ -22,14 +22,14 @@ Este repositorio contiene scripts para procesar conjuntos de datos RUES y ZASCA,
 python scripts/create_rues_clean_data.py
 ```
 
-Este script carga conjuntos de datos RUES, los combina con datos de búsqueda de códigos postales, procesa el conjunto de datos combinado y guarda los datos limpios en `data/processed/rues_total.csv`.
+Este script carga conjuntos de datos RUES, los combina con datos de búsqueda de códigos postales, procesa el conjunto de datos combinado y guarda los datos limpios en `data/02_processed_t/rues_total.csv`.
 
 **Procesar datos ZASCA:**
 ```bash
 python scripts/create_zasca_clean_data.py
 ```
 
-Este script carga archivos de cohortes ZASCA, los procesa, los cruza con datos RUES para crear indicadores de coincidencia y guarda el conjunto de datos mejorado en `data/processed/zasca_total.csv`.
+Este script carga archivos de cohortes ZASCA, los procesa, los cruza con datos RUES para crear indicadores de coincidencia y guarda el conjunto de datos mejorado en `data/02_processed_t/zasca_total.csv`.
 
 ### Pipeline de geolocalización
 
@@ -92,7 +92,7 @@ Los scripts dependen del paquete `innpulsa` que proporciona:
 
 ### Salida de datos
 
-Los scripts crean archivos CSV procesados en el directorio `data/processed/` con codificación UTF-8:
+Los scripts crean archivos CSV procesados en el directorio `data/02_processed_t/` con codificación UTF-8:
 
 - **Datos principales:** `rues_total.csv`, `zasca_total.csv`
 - **Datos geocodificados:** `geolocation/rues_coordinates.csv`, `geolocation/zasca_coordinates.csv`

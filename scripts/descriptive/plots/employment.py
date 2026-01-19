@@ -16,20 +16,20 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
     """
     # define colors for each source
     color_scale = alt.Scale(
-        domain=["ZASCA", "EMICRON", "RUES"],
-        range=["#00B2A2", "#FF5836", "#1F5DAD"],  # green, orange, blue
+        domain=["ZASCA", "EMICRON"],
+        range=["#003366", "#FFC107"],  # navy blue, bright yellow
     )
 
     charts = []
 
     # get unique categories in the correct order
-    category_order = ["Género", "Duración del Contrato", "Tipo de Empleo"]
+    category_order = ["Duración del Contrato", "Tipo de Empleo"]
     categories = [cat for cat in category_order if cat in df_plot["category"].unique()]
 
     for i, category in enumerate(categories):
         category_data = df_plot.loc[df_plot["category"] == category].copy()
-        # add sort order: RUES (0), EMICRON (1), ZASCA (2) so ZASCA renders on top
-        category_data["source_order"] = category_data["source"].map({"RUES": 0, "EMICRON": 1, "ZASCA": 2})
+        # add sort order: EMICRON (0), ZASCA (1) so ZASCA renders on top
+        category_data["source_order"] = category_data["source"].map({"EMICRON": 0, "ZASCA": 1})
         is_last = i == len(categories) - 1
 
         # x-axis configuration: show labels only on last chart, keep 10% grid on all
@@ -61,7 +61,7 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
                     legend=alt.Legend(
                         orient="bottom",
                         direction="horizontal",
-                        columns=3,
+                        columns=2,
                         title=None,
                         labelExpr="''",
                         symbolSize=200,
@@ -95,7 +95,6 @@ def plot_employment_dumbbell_by_category(df_plot: pd.DataFrame) -> alt.VConcatCh
         # value labels inside each circle for all points
         value_labels = (
             alt.Chart(category_data)
-            .transform_filter("datum.source != 'RUES'")
             .mark_text(baseline="middle", align="center", dy=0.5, fontSize=8, color="white", fontWeight="bold")
             .encode(
                 x=alt.X("proportion:Q"),
@@ -121,20 +120,20 @@ def _plot_employment_dumbbell_by_category_base(df_plot: pd.DataFrame, hide_y_lab
     """Create employment dumbbell charts without configuration for use in combined charts."""
     # define colors for each source
     color_scale = alt.Scale(
-        domain=["ZASCA", "EMICRON", "RUES"],
-        range=["#00B2A2", "#FF5836", "#1F5DAD"],  # green, orange, blue
+        domain=["ZASCA", "EMICRON"],
+        range=["#003366", "#FFC107"],  # navy blue, bright yellow
     )
 
     charts = []
 
     # get unique categories in the correct order
-    category_order = ["Género", "Duración del Contrato", "Tipo de Empleo"]
+    category_order = ["Duración del Contrato", "Tipo de Empleo"]
     categories = [cat for cat in category_order if cat in df_plot["category"].unique()]
 
     for i, category in enumerate(categories):
         category_data = df_plot.loc[df_plot["category"] == category].copy()
-        # add sort order: RUES (0), EMICRON (1), ZASCA (2) so ZASCA renders on top
-        category_data["source_order"] = category_data["source"].map({"RUES": 0, "EMICRON": 1, "ZASCA": 2})
+        # add sort order: EMICRON (0), ZASCA (1) so ZASCA renders on top
+        category_data["source_order"] = category_data["source"].map({"EMICRON": 0, "ZASCA": 1})
         is_last = i == len(categories) - 1
 
         # x-axis configuration: show labels only on last chart, keep 10% grid on all
@@ -166,7 +165,7 @@ def _plot_employment_dumbbell_by_category_base(df_plot: pd.DataFrame, hide_y_lab
                     legend=alt.Legend(
                         orient="bottom",
                         direction="horizontal",
-                        columns=3,
+                        columns=2,
                         title=None,
                         labelExpr="''",
                         symbolSize=200,
@@ -200,7 +199,6 @@ def _plot_employment_dumbbell_by_category_base(df_plot: pd.DataFrame, hide_y_lab
         # value labels inside each circle for all points
         value_labels = (
             alt.Chart(category_data)
-            .transform_filter("datum.source != 'RUES'")
             .mark_text(baseline="middle", align="center", dy=0.5, fontSize=8, color="white", fontWeight="bold")
             .encode(
                 x=alt.X("proportion:Q"),

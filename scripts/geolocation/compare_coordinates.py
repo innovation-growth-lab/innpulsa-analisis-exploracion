@@ -38,9 +38,9 @@ def main() -> int:
 
     base_dir = Path(DATA_DIR) / "02_processed/geolocation"
     try:
-        addr_df = load_csv(base_dir / "zasca_addresses.csv", encoding="utf-8-sig")
-        google_df = load_csv(base_dir / "zasca_coordinates.csv")
-        nom_df = load_csv(base_dir / "zasca_coordinates_nominatim.csv")
+        addr_df = load_csv(base_dir / "zasca_manufactura_addresses.csv", encoding="utf-8-sig")
+        google_df = load_csv(base_dir / "zasca_manufactura_coordinates.csv")
+        nom_df = load_csv(base_dir / "zasca_manufactura_coordinates_nominatim.csv")
     except FileNotFoundError:
         logger.exception("Required file not found in %s", base_dir)
         return 1
@@ -89,7 +89,7 @@ def main() -> int:
         TOLERANCE,
     )
 
-    out_path = base_dir / "zasca_coordinates_comparison.csv"
+    out_path = base_dir / "zasca_manufactura_coordinates_comparison.csv"
     merged.to_csv(out_path, index=False)
     logger.info("Merged comparison saved to %s", out_path)
 

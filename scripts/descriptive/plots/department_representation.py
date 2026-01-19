@@ -34,9 +34,9 @@ def plot_department_representation_scatter(df_plot: pd.DataFrame) -> alt.HConcat
     df_agro_special = df_agro.loc[df_agro["dept_name"] == "Valle Del Cauca"].copy()
     df_agro_normal = df_agro.loc[df_agro["dept_name"] != "Valle Del Cauca"].copy()
 
-    df_manufactura_special_valle = df_manufactura.loc[df_manufactura["dept_name"] == "Valle Del Cauca"].copy()
+    # df_manufactura_special_valle = df_manufactura.loc[df_manufactura["dept_name"] == "Valle Del Cauca"].copy()
     df_manufactura_special_tolima = df_manufactura.loc[df_manufactura["dept_name"] == "Tolima"].copy()
-    df_manufactura_normal = df_manufactura.loc[~df_manufactura["dept_name"].isin(["Valle Del Cauca", "Tolima"])].copy()
+    df_manufactura_normal = df_manufactura.loc[~df_manufactura["dept_name"].isin(["Tolima"])].copy()
 
     # determine shared y-axis scale (capped at 6.5)
     y_scale = alt.Scale(
@@ -49,7 +49,7 @@ def plot_department_representation_scatter(df_plot: pd.DataFrame) -> alt.HConcat
     # AGRO chart - using brand green
     agro_points = (
         alt.Chart(df_agro)
-        .mark_circle(size=200, opacity=0.8, color="#00B2A2")
+        .mark_circle(size=200, opacity=0.8, color="#003366")
         .encode(
             x=alt.X(
                 "zasca_count:Q",
@@ -115,7 +115,7 @@ def plot_department_representation_scatter(df_plot: pd.DataFrame) -> alt.HConcat
     # MANUFACTURA chart - using brand blue
     manufactura_points = (
         alt.Chart(df_manufactura)
-        .mark_circle(size=200, opacity=0.8, color="#1F5DAD")
+        .mark_circle(size=200, opacity=0.8, color="#FFC107")
         .encode(
             x=alt.X(
                 "zasca_count:Q",
@@ -159,23 +159,23 @@ def plot_department_representation_scatter(df_plot: pd.DataFrame) -> alt.HConcat
     )
 
     # Valle Del Cauca label (right-aligned, to the left of point)
-    manufactura_text_valle = (
-        alt.Chart(df_manufactura_special_valle)
-        .mark_text(
-            align="right",
-            baseline="middle",
-            fontSize=10,
-            color="black",
-            fontWeight="normal",
-            dx=-10,
-            dy=0,
-        )
-        .encode(
-            x=alt.X("zasca_count:Q"),
-            y=alt.Y("isem_score:Q", scale=y_scale),
-            text=alt.Text("dept_name:N"),
-        )
-    )
+    # manufactura_text_valle = (
+    #     alt.Chart(df_manufactura_special_valle)
+    #     .mark_text(
+    #         align="right",
+    #         baseline="middle",
+    #         fontSize=10,
+    #         color="black",
+    #         fontWeight="normal",
+    #         dx=-10,
+    #         dy=0,
+    #     )
+    #     .encode(
+    #         x=alt.X("zasca_count:Q"),
+    #         y=alt.Y("isem_score:Q", scale=y_scale),
+    #         text=alt.Text("dept_name:N"),
+    #     )
+    # )
 
     # Tolima label (above the point)
     manufactura_text_tolima = (
@@ -196,9 +196,7 @@ def plot_department_representation_scatter(df_plot: pd.DataFrame) -> alt.HConcat
         )
     )
 
-    manufactura_chart = (
-        manufactura_points + manufactura_text_normal + manufactura_text_valle + manufactura_text_tolima
-    ).properties(
+    manufactura_chart = (manufactura_points + manufactura_text_normal + manufactura_text_tolima).properties(
         width=420,
         height=400,
     )

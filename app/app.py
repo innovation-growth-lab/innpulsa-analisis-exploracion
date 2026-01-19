@@ -116,23 +116,29 @@ def render_centro_map(centro, cfg, data_with_coords_plot_df, show_rues):
         show_rues: Whether to show the RUES layer
 
     """
+    # Blue dots (ZASCA + RUES) - smaller size
     layer_zasca_y_rues = make_layer(
         data_with_coords_plot_df[
             data_with_coords_plot_df["zasca_and_rues"] & (data_with_coords_plot_df["centro"] == centro)
         ],
         CLR_ZASCA_DARK,
+        radius=100,  # Blue dots - standard size
     )
+    # Red dots (ZASCA only) - larger size
     layer_zasca_only = make_layer(
         data_with_coords_plot_df[
             data_with_coords_plot_df["zasca_only"] & (data_with_coords_plot_df["centro"] == centro)
         ],
         CLR_ZASCA_LIGHT,
+        radius=140,  # Red dots - larger size
     )
+    # Blue dots (RUES only) - smaller size
     layer_rues = make_layer(
         data_with_coords_plot_df[
             (data_with_coords_plot_df["rues_only"]) & (data_with_coords_plot_df["centro"] == centro)
         ],
         CLR_RUES,
+        radius=100,  # Blue dots - standard size
     )
 
     # Create ZASCA center marker layer
@@ -151,12 +157,15 @@ def render_centro_map(centro, cfg, data_with_coords_plot_df, show_rues):
             get_position="[longitude, latitude]",
             get_fill_color=[255, 255, 0, 255],  # Yellow color
             get_radius=200,  # Bigger radius for visibility
+            get_line_color=[0, 0, 0, 255],  # Black border
+            get_line_width=2,  # Thin black border
             pickable=True,
         )
     else:
         layer_centro = None
 
-    layers = ([layer_rues] if show_rues else []) + [layer_zasca_only, layer_zasca_y_rues]
+    # Order layers so red dots (ZASCA only) are always on top
+    layers = ([layer_rues] if show_rues else []) + [layer_zasca_y_rues, layer_zasca_only]
     if layer_centro:
         layers.append(layer_centro)
 
